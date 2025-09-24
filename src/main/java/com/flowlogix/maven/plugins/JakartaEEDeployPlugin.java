@@ -40,6 +40,6 @@ public class JakartaEEDeployPlugin extends AbstractMojo {
                 goal("exploded"),
                 configuration(),
                 executionEnvironment(project, session, pluginManager)
-                );
+        );
     }
 }
