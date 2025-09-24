@@ -8,17 +8,20 @@
     <version>1.x-SNAPSHOT</version>
 
     <name>Jakarta EE Container Deploy Plugin</name>
+    <description>Dev mode, and deploy utilities for Payara and GlassFish Server
+    Includes BrowserSync functionality for Jakarta Faces applications</description>
 
     <parent>
         <groupId>com.flowlogix</groupId>
         <artifactId>infra-pom</artifactId>
-        <version>68</version>
+        <version>69</version>
     </parent>
 
     <properties>
         <!-- Override target java release -->
         <maven.compiler.release>17</maven.compiler.release>
         <flowlogix.depchain.version>80</flowlogix.depchain.version>
+        <maven.version>3.9.11</maven.version>
         <checkstyle.suppressionsLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/suppressions.xml</checkstyle.suppressionsLocation>
         <checkstyle.headerLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/apache-header.txt</checkstyle.headerLocation>
         <!-- Turn off maven build cache -->
@@ -44,7 +47,7 @@
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
-            <version>3.9.11</version>
+            <version>${maven.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -61,7 +64,7 @@
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-core</artifactId>
-            <version>3.9.11</version>
+            <version>${maven.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -73,6 +76,14 @@
                 <configuration>
                     <goalPrefix>payara</goalPrefix>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>help-mojo</id>
+                        <goals>
+                            <goal>helpmojo</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <pluginManagement>

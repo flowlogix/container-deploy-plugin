@@ -6,5 +6,4 @@
 <suppressions>
     <!-- do not require package-info.java -->
     <suppress checks="JavadocPackage" files=".*.java$"/>
-    <suppress checks="Header" files=".*.java$"/>
 </suppressions>
