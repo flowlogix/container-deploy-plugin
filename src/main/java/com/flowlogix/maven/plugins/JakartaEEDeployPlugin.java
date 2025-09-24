@@ -10,6 +10,7 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
 import org.eclipse.aether.impl.ArtifactResolver;
 import javax.inject.Inject;
+import java.awt.Desktop;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
@@ -56,14 +57,17 @@ public class JakartaEEDeployPlugin extends AbstractMojo {
     @Inject
     RepositorySystem repositorySystem;
 
-    @Parameter(defaultValue = "http://localhost:4848", property = "payara.serverUrl")
-    private String payaraServerURL;
+    @Parameter(defaultValue = "http://localhost:4848", property = "payara.adminUrl")
+    private String payaraAminURL;
+
+    @Parameter(defaultValue = "8080", property = "payara.httpPort")
+    private String payaraHttpPort;
 
     @Override
     @SneakyThrows({IOException.class, InterruptedException.class})
     @SuppressWarnings({"checkstyle:CyclomaticComplexity", "checkstyle:NPathComplexity", "checkstyle:MethodLength"})
     public void execute() {
-        getLog().info("Hello from JakartaEEDeployPlugin");
+        getLog().info("Starting in dev mode, starting browser, monitoring src/main for changes...");
         if (project == null || project.getFile() == null) {
             getLog().warn("No Maven project found, skipping execution.");
             return;
@@ -81,6 +85,8 @@ public class JakartaEEDeployPlugin extends AbstractMojo {
             if (sendEnableCommand() == CommandResult.ERROR) {
                 sendDeployCommand();
             }
+            String httpUrl = payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
+            Desktop.getDesktop().browse(URI.create("%s/%s".formatted(httpUrl, project.getBuild().getFinalName())));
             while (!Thread.interrupted()) {
                 WatchKey key = watchService.poll(1, TimeUnit.SECONDS);
                 if (key == null) {
@@ -155,13 +161,13 @@ public class JakartaEEDeployPlugin extends AbstractMojo {
     private CommandResult sendDisableCommand() {
         getLog().info("Sending disable command");
         return sendCommand("disable", Map.of("DEFAULT", project.getBuild().getFinalName()),
-                payaraServerURL);
+                payaraAminURL);
     }
 
     private CommandResult sendEnableCommand() throws IOException, InterruptedException {
         getLog().info("Sending enable command");
         return sendCommand("enable", Map.of("DEFAULT", project.getBuild().getFinalName()),
-                payaraServerURL);
+                payaraAminURL);
     }
 
     private CommandResult sendDeployCommand() {
@@ -172,18 +178,18 @@ public class JakartaEEDeployPlugin extends AbstractMojo {
                 "properties", "warlibs=true",
                 "DEFAULT", Paths.get(project.getBuild().getDirectory(),
                         project.getBuild().getFinalName()).toString()
-        ), payaraServerURL);
+        ), payaraAminURL);
     }
 
-    CommandResult sendUndeployCommand(String payaraServerURL) {
+    CommandResult sendUndeployCommand(String payaraAminURL) {
         getLog().info("Sending undeploy command");
         return sendCommand("undeploy", Map.of("DEFAULT", project.getBuild().getFinalName()),
-                payaraServerURL);
+                payaraAminURL);
     }
 
     @SneakyThrows({IOException.class, InterruptedException.class})
     @SuppressWarnings("checkstyle:MagicNumber")
-    private CommandResult sendCommand(String command, Map<String, String> parameters, String payaraServerURL) {
+    private CommandResult sendCommand(String command, Map<String, String> parameters, String payaraAminURL) {
         getLog().info("Parameters: " + parameters);
         HttpResponse<String> response;
         try {
@@ -193,7 +199,7 @@ public class JakartaEEDeployPlugin extends AbstractMojo {
                             + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
                     .collect(Collectors.joining("&"));
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/command/%s".formatted(payaraServerURL, command)))
+                    .uri(URI.create("%s/command/%s".formatted(payaraAminURL, command)))
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .header("X-requested-by", "cli")
                     .POST(HttpRequest.BodyPublishers.ofString(formData))
@@ -202,7 +208,7 @@ public class JakartaEEDeployPlugin extends AbstractMojo {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (ConnectException e) {
             getLog().warn("Failed to connect to server at %s. Is it running?"
-                    .formatted(payaraServerURL), e);
+                    .formatted(payaraAminURL), e);
             return CommandResult.NO_CONNECTION;
         }
         if (response.statusCode() != 200) {

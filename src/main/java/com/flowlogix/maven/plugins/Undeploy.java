@@ -10,13 +10,13 @@ public class Undeploy extends AbstractMojo {
     @Inject
     JakartaEEDeployPlugin jakartaEEDeployPlugin;
 
-    @Parameter(defaultValue = "http://localhost:4848", property = "payara.serverUrl")
-    private String payaraServerURL;
+    @Parameter(defaultValue = "http://localhost:4848", property = "payara.adminUrl")
+    private String payaraAminURL;
 
     @Override
     public void execute() {
         getLog().info("Undeploying application...");
-        jakartaEEDeployPlugin.sendUndeployCommand(payaraServerURL);
+        jakartaEEDeployPlugin.sendUndeployCommand(payaraAminURL);
         getLog().info("Application undeployed.");
     }
 }
