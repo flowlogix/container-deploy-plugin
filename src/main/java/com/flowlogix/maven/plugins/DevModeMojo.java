@@ -37,7 +37,7 @@ import java.util.Set;
 @Mojo(name = "dev", requiresProject = false, threadSafe = true,
         requiresDependencyResolution = ResolutionScope.COMPILE,
         requiresDependencyCollection = ResolutionScope.COMPILE)
-public class DevMojo extends CommonDevMojo {
+public class DevModeMojo extends CommonDevMojo {
     /**
      * Group ID of Apache Maven Plugins
      */
