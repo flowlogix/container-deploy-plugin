@@ -2,7 +2,7 @@ package com.flowlogix.maven.plugins;
 
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import org.apache.maven.plugin.logging.Log;
+import lombok.experimental.Delegate;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
@@ -21,19 +21,25 @@ class Deployer {
      *  Key for default parameter, which is the file to be deployed, enabled, disabled or undeployed.
      */
     public static final String DEFAULT = "DEFAULT";
+
+    enum CommandResult {
+        NO_CONNECTION, ERROR, SUCCESS
+    }
+
+    @Delegate
     private final CommonDevMojo mojo;
 
-    DevMojo.CommandResult sendDisableCommand() {
+    CommandResult sendDisableCommand() {
         getLog().info("Sending disable command");
         return sendCommand("disable", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()));
     }
 
-    DevMojo.CommandResult sendEnableCommand() throws IOException, InterruptedException {
+    CommandResult sendEnableCommand() {
         getLog().info("Sending enable command");
         return sendCommand("enable", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()));
     }
 
-    DevMojo.CommandResult sendDeployCommand() {
+    CommandResult sendDeployCommand() {
         getLog().info("Sending deploy command");
         return sendCommand("deploy", Map.of(
                 "name", mojo.project.getBuild().getFinalName(),
@@ -46,15 +52,15 @@ class Deployer {
         ));
     }
 
-    DevMojo.CommandResult sendUndeployCommand() {
+    CommandResult sendUndeployCommand() {
         getLog().info("Sending undeploy command");
         return sendCommand("undeploy", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()));
     }
 
     @SneakyThrows({IOException.class, InterruptedException.class})
     @SuppressWarnings("checkstyle:MagicNumber")
-    private DevMojo.CommandResult sendCommand(String command, Map<String, String> parameters) {
-        getLog().info("Parameters: " + parameters);
+    private CommandResult sendCommand(String command, Map<String, String> parameters) {
+        getLog().debug("Parameters: " + parameters);
         HttpResponse<String> response;
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -72,17 +78,13 @@ class Deployer {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (ConnectException e) {
             getLog().warn("Failed to connect to server at %s. Is it running?"
-                    .formatted(mojo.payaraAminURL), e);
-            return DevMojo.CommandResult.NO_CONNECTION;
+                    .formatted(mojo.payaraAminURL));
+            return CommandResult.NO_CONNECTION;
         }
         if (response.statusCode() != 200) {
             getLog().error("Command %s failed with response code %d".formatted(command, response.statusCode()));
             getLog().error("Response body: %s".formatted(response.body()));
         }
-        return response.statusCode() == 200 ? DevMojo.CommandResult.SUCCESS : DevMojo.CommandResult.ERROR;
-    }
-
-    private Log getLog() {
-        return mojo.getLog();
+        return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
     }
 }

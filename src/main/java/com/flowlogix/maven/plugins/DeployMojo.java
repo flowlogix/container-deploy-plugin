@@ -1,5 +1,6 @@
 package com.flowlogix.maven.plugins;
 
+import com.flowlogix.maven.plugins.Deployer.CommandResult;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 
@@ -8,7 +9,7 @@ public class DeployMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
         getLog().info("Deploying application...");
-        if (deployer.sendDeployCommand() == DevMojo.CommandResult.ERROR) {
+        if (deployer.sendDeployCommand() == CommandResult.ERROR) {
             throw new MojoFailureException("Deployment failed, see log for details.");
         }
         getLog().info("Application deployed.");
