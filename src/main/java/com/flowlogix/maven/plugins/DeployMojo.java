@@ -9,7 +9,7 @@ public class DeployMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
         getLog().info("Deploying application...");
-        if (deployer.sendDeployCommand() == CommandResult.ERROR) {
+        if (deployer.sendDeployCommand(deployer::printResponse) == CommandResult.ERROR) {
             throw new MojoFailureException("Deployment failed, see log for details.");
         }
         getLog().info("Application deployed.");

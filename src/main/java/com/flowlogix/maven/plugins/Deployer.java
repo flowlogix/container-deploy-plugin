@@ -1,5 +1,6 @@
 package com.flowlogix.maven.plugins;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.experimental.Delegate;
@@ -13,6 +14,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -25,21 +27,22 @@ class Deployer {
     enum CommandResult {
         NO_CONNECTION, ERROR, SUCCESS
     }
+    record CommandResponse(int statusCode, String body) { }
 
     @Delegate
     private final CommonDevMojo mojo;
 
-    CommandResult sendDisableCommand() {
-        getLog().info("Sending disable command");
-        return sendCommand("disable", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()));
+    CommandResult sendDisableCommand(@NonNull BiConsumer<String, CommandResponse> responseCallback) {
+        getLog().debug("Sending disable command");
+        return sendCommand("disable", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()), responseCallback);
     }
 
-    CommandResult sendEnableCommand() {
-        getLog().info("Sending enable command");
-        return sendCommand("enable", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()));
+    CommandResult sendEnableCommand(@NonNull BiConsumer<String, CommandResponse> responseCallback) {
+        getLog().debug("Sending enable command");
+        return sendCommand("enable", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()), responseCallback);
     }
 
-    CommandResult sendDeployCommand() {
+    CommandResult sendDeployCommand(@NonNull BiConsumer<String, CommandResponse> responseCallback) {
         getLog().info("Sending deploy command");
         return sendCommand("deploy", Map.of(
                 "name", mojo.project.getBuild().getFinalName(),
@@ -49,17 +52,18 @@ class Deployer {
                 "properties", "warlibs=%s".formatted(String.valueOf(mojo.warlibs)),
                 DEFAULT, Paths.get(mojo.project.getBuild().getDirectory(),
                         mojo.project.getBuild().getFinalName()).toString()
-        ));
+        ), responseCallback);
     }
 
-    CommandResult sendUndeployCommand() {
+    CommandResult sendUndeployCommand(@NonNull BiConsumer<String, CommandResponse> responseCallback) {
         getLog().info("Sending undeploy command");
-        return sendCommand("undeploy", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()));
+        return sendCommand("undeploy", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()), responseCallback);
     }
 
-    @SneakyThrows({IOException.class, InterruptedException.class})
     @SuppressWarnings("checkstyle:MagicNumber")
-    private CommandResult sendCommand(String command, Map<String, String> parameters) {
+    @SneakyThrows({IOException.class, InterruptedException.class})
+    private CommandResult sendCommand(String command, Map<String, String> parameters,
+                                      @NonNull BiConsumer<String, CommandResponse> responseCallback) {
         getLog().debug("Parameters: " + parameters);
         HttpResponse<String> response;
         try {
@@ -81,10 +85,15 @@ class Deployer {
                     .formatted(mojo.payaraAminURL));
             return CommandResult.NO_CONNECTION;
         }
+        responseCallback.accept(command, new CommandResponse(response.statusCode(), response.body()));
+        return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
+    }
+
+    @SuppressWarnings("checkstyle:MagicNumber")
+    void printResponse(String command, CommandResponse response) {
         if (response.statusCode() != 200) {
             getLog().error("Command %s failed with response code %d".formatted(command, response.statusCode()));
             getLog().error("Response body: %s".formatted(response.body()));
         }
-        return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
     }
 }

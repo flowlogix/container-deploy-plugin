@@ -43,11 +43,13 @@ public class DevMojo extends CommonDevMojo {
     }
 
     private void enableOrDeploy() throws IOException {
-        if (deployer.sendEnableCommand() == CommandResult.ERROR) {
-            deployer.sendDeployCommand();
+        if (deployer.sendEnableCommand((a, b) -> { }) == CommandResult.ERROR) {
+            deployer.sendDeployCommand(deployer::printResponse);
         }
         String httpUrl = payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
-        Desktop.getDesktop().browse(URI.create("%s/%s".formatted(httpUrl, project.getBuild().getFinalName())));
+        var browseURL = URI.create("%s/%s".formatted(httpUrl, project.getBuild().getFinalName()));
+        getLog().info("Application URL at " + browseURL);
+        Desktop.getDesktop().browse(browseURL);
     }
 
     private void onChange(Set<Path> modifiedFiles) {
@@ -57,10 +59,11 @@ public class DevMojo extends CommonDevMojo {
         callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
                 "maven-war-plugin", "exploded", project, session, pluginManager);
         if (codeChanged) {
-            if (deployer.sendDisableCommand() == CommandResult.ERROR) {
-                deployer.sendDeployCommand();
+            getLog().info("Reloading " + project.getBuild().getFinalName());
+            if (deployer.sendDisableCommand(deployer::printResponse) == CommandResult.ERROR) {
+                deployer.sendDeployCommand(deployer::printResponse);
             } else {
-                deployer.sendEnableCommand();
+                deployer.sendEnableCommand(deployer::printResponse);
             }
         }
     }
