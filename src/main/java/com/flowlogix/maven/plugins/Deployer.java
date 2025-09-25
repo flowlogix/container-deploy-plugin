@@ -102,8 +102,7 @@ class Deployer {
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (ConnectException e) {
-            getLog().warn("Failed to connect to server at %s. Is it running?"
-                    .formatted(mojo.payaraAminURL));
+            responseCallback.accept(command, null);
             return CommandResult.NO_CONNECTION;
         }
         responseCallback.accept(command, new CommandResponse(response.statusCode(), response.body()));
@@ -112,6 +111,11 @@ class Deployer {
 
     @SuppressWarnings("checkstyle:MagicNumber")
     void printResponse(String command, CommandResponse response) {
+        if (response == null) {
+            getLog().warn("Failed to connect to server at %s. Is it running?"
+                    .formatted(mojo.payaraAminURL));
+            return;
+        }
         if (response.statusCode() != 200) {
             getLog().error("Command %s failed with response code %d".formatted(command, response.statusCode()));
             getLog().error("Response body: %s".formatted(response.body()));

@@ -19,9 +19,11 @@
 package com.flowlogix.maven.plugins;
 
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
@@ -35,8 +37,8 @@ import java.util.Set;
  * Works for both Payara and GlassFish servers.
  */
 @Mojo(name = "dev", requiresProject = false, threadSafe = true,
-        requiresDependencyResolution = ResolutionScope.COMPILE,
-        requiresDependencyCollection = ResolutionScope.COMPILE)
+        requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
+        requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class DevModeMojo extends CommonDevMojo {
     /**
      * Group ID of Apache Maven Plugins
@@ -47,6 +49,11 @@ public class DevModeMojo extends CommonDevMojo {
             "webapp/WEB-INF", "resources/META-INF"
     );
 
+    @Getter(lazy = true)
+    private final Path explodedWarDir = Paths.get(project.getBuild().getDirectory(), project.getBuild().getFinalName());
+    @Getter(lazy = true)
+    private final Path srcMainDir = Paths.get(project.getBasedir().getAbsolutePath(), "src", "main");
+
     @Override
     @SneakyThrows(IOException.class)
     public void execute() {
@@ -55,18 +62,28 @@ public class DevModeMojo extends CommonDevMojo {
             return;
         }
 
-        Path explodedWarDir = Paths.get(project.getBuild().getDirectory(), project.getBuild().getFinalName());
-        Path srcMainDir = Paths.get(project.getBasedir().getAbsolutePath(), "src", "main");
         getLog().info("Starting in dev mode, starting browser, monitoring %s for changes..."
                 .formatted(srcMainDir));
-        getLog().info("Exploded WAR directory: " + explodedWarDir);
+        getLog().info("Exploded WAR directory: " + getExplodedWarDir());
 
         enableOrDeploy();
-        watcher.watch(srcMainDir, this::onChange);
+        watcher.watch(getSrcMainDir(), this::onChange);
     }
 
     private void enableOrDeploy() throws IOException {
-        if (deployer.sendEnableCommand((a, b) -> { }) == CommandResult.ERROR) {
+        var result = deployer.sendEnableCommand((a, b) -> { });
+        if (result == CommandResult.NO_CONNECTION) {
+            callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "unpack",
+                    "unpack-payara", project, session, pluginManager, this::addSkipConfiguration);
+            callGenericMojo("org.codehaus.mojo", "exec-maven-plugin", "exec",
+                    "start-domain", project, session, pluginManager, this::addSkipConfiguration);
+            result = deployer.sendEnableCommand((a, b) -> { });
+        }
+        if (result == CommandResult.ERROR) {
+            if (!getExplodedWarDir().toFile().exists()) {
+                compileSources();
+                explodedWar();
+            }
             deployer.sendDeployCommand(deployer::printResponse);
         }
         String httpUrl = payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
@@ -77,10 +94,8 @@ public class DevModeMojo extends CommonDevMojo {
 
     private void onChange(Set<Path> modifiedFiles) {
         boolean codeChanged = modifiedFiles.stream().filter(this::isSourceCode).findAny()
-                .map(var -> callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
-                        "maven-compiler-plugin", "compile", project, session, pluginManager)).orElse(false);
-        callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
-                "maven-war-plugin", "exploded", project, session, pluginManager);
+                .map(var -> compileSources()).orElse(false);
+        explodedWar();
         if (codeChanged) {
             getLog().info("Reloading " + project.getBuild().getFinalName());
             if (deployer.sendDisableCommand(deployer::printResponse) == CommandResult.ERROR) {
@@ -91,9 +106,27 @@ public class DevModeMojo extends CommonDevMojo {
         }
     }
 
+    private boolean compileSources() {
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
+                "maven-compiler-plugin", "compile", null,
+                project, session, pluginManager, config -> { });
+    }
+
+    private boolean explodedWar() {
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
+                "maven-war-plugin", "exploded", null,
+                project, session, pluginManager, config -> { });
+    }
+
     private boolean isSourceCode(Path path) {
         Path relativePath = project.getBasedir().toPath()
                 .resolve("src/main").relativize(path);
         return CODE_CONTAINING_SRC_DIRS.stream().anyMatch(relativePath::startsWith);
+    }
+
+    private void addSkipConfiguration(Xpp3Dom configuration) {
+        var skipValue = new Xpp3Dom("skip");
+        skipValue.setValue("false");
+        configuration.addChild(skipValue);
     }
 }

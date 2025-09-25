@@ -25,8 +25,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.jspecify.annotations.Nullable;
 import javax.inject.Inject;
+import java.util.function.Consumer;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.executionEnvironment;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.goal;
@@ -86,17 +89,29 @@ abstract class CommonDevMojo extends AbstractMojo {
     final Watcher watcher = new Watcher(this);
 
     boolean callGenericMojo(String groupId, String artifactId, String goal,
-                            MavenProject project, MavenSession session,
-                            BuildPluginManager pluginManager) {
+                            @Nullable String execution, MavenProject project, MavenSession session,
+                            BuildPluginManager pluginManager, Consumer<Xpp3Dom> configurator) {
         try {
+            var plugin = project.getPlugin("%s:%s".formatted(groupId, artifactId));
+            Xpp3Dom configuration = null;
+            if (execution != null) {
+                configuration = (Xpp3Dom) plugin.getExecutionsAsMap().get(execution).getConfiguration();
+            } else {
+                configuration = (Xpp3Dom) plugin.getConfiguration();
+            }
+            if (configuration == null) {
+                configuration = configuration();
+            }
+            configurator.accept(configuration);
             executeMojo(
                     plugin(groupId(groupId), artifactId(artifactId)),
                     goal(goal),
-                    (Xpp3Dom) project.getPlugin("%s:%s".formatted(groupId, artifactId)).getConfiguration(),
+                    configuration,
                     executionEnvironment(project, session, pluginManager)
             );
             return true;
         } catch (MojoExecutionException e) {
+            getLog().debug("Failed to execute %s:%s:%s".formatted(groupId, artifactId, goal), e);
             return false;
         }
     }
