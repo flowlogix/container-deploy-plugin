@@ -93,7 +93,7 @@ abstract class CommonDevMojo extends AbstractMojo {
                             BuildPluginManager pluginManager, Consumer<Xpp3Dom> configurator) {
         try {
             var plugin = project.getPlugin("%s:%s".formatted(groupId, artifactId));
-            Xpp3Dom configuration = null;
+            Xpp3Dom configuration;
             if (execution != null) {
                 configuration = (Xpp3Dom) plugin.getExecutionsAsMap().get(execution).getConfiguration();
             } else {
