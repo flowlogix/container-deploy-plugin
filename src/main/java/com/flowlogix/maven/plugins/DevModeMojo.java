@@ -77,7 +77,7 @@ public class DevModeMojo extends CommonDevMojo {
                 compileSources();
                 explodedWar();
             }
-            deployer.sendDeployCommand(deployer::printResponse);
+            deployer.sendDeployCommand(deployer::printResponse, 0);
         }
         String httpUrl = payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
         var browseURL = URI.create("%s/%s".formatted(httpUrl, project.getBuild().getFinalName()));
@@ -96,7 +96,7 @@ public class DevModeMojo extends CommonDevMojo {
         if (codeChanged) {
             getLog().info("Reloading " + project.getBuild().getFinalName());
             if (deployer.sendDisableCommand(deployer::printResponse) == CommandResult.ERROR) {
-                deployer.sendDeployCommand(deployer::printResponse);
+                deployer.sendDeployCommand(deployer::printResponse, 0);
             } else {
                 deployer.sendEnableCommand(deployer::printResponse);
             }

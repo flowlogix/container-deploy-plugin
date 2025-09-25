@@ -32,8 +32,10 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Common code for deploy, undeploy, enable and disable server commands.
@@ -63,14 +65,19 @@ class Deployer {
         return sendCommand("enable", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()), responseCallback);
     }
 
-    CommandResult sendDeployCommand(@NonNull BiConsumer<String, CommandResponse> responseCallback) {
+    CommandResult sendDeployCommand(@NonNull BiConsumer<String, CommandResponse> responseCallback,
+                                    Integer cacheTTL) {
         getLog().info("Sending deploy command");
+        String properties = Stream.of("warlibs=%s".formatted(String.valueOf(mojo.warlibs)),
+                        cacheTTL != null ? "cacheTTL=%d".formatted(cacheTTL) : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(":"));
         return sendCommand("deploy", Map.of(
                 "name", mojo.project.getBuild().getFinalName(),
                 "availabilityenabled", String.valueOf(mojo.availabilityenabled),
                 "keepstate", String.valueOf(mojo.keepstate),
                 "force", String.valueOf(mojo.force),
-                "properties", "warlibs=%s".formatted(String.valueOf(mojo.warlibs)),
+                "properties", properties,
                 DEFAULT, Paths.get(mojo.project.getBuild().getDirectory(),
                         mojo.project.getBuild().getFinalName()).toString()
         ), responseCallback);
