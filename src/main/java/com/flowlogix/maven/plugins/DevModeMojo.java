@@ -76,7 +76,7 @@ public class DevModeMojo extends CommonDevMojo {
             callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "unpack",
                     "unpack-payara", project, session, pluginManager, this::addSkipConfiguration);
             callGenericMojo("org.codehaus.mojo", "exec-maven-plugin", "exec",
-                    "start-domain", project, session, pluginManager, this::addSkipConfiguration);
+                    "start-payara-domain", project, session, pluginManager, this::addSkipConfiguration);
             result = deployer.sendEnableCommand((a, b) -> { });
         }
         if (result == CommandResult.ERROR) {

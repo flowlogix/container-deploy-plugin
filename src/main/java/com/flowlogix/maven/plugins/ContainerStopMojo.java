@@ -30,7 +30,7 @@ public class ContainerStopMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
         if (!callGenericMojo("org.codehaus.mojo", "exec-maven-plugin", "exec",
-                "stop-domain", project, session, pluginManager, config -> { })) {
+                "stop-payara-domain", project, session, pluginManager, config -> { })) {
             throw new MojoFailureException("Failed to stop container domain");
         }
         getLog().info("Application Server Stopped.");
