@@ -23,7 +23,6 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.codehaus.plexus.util.xml.Xpp3Dom;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
@@ -40,10 +39,6 @@ import java.util.Set;
         requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
         requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class DevModeMojo extends CommonDevMojo {
-    /**
-     * Group ID of Apache Maven Plugins
-     */
-    public static final String ORG_APACHE_MAVEN_PLUGINS = "org.apache.maven.plugins";
     private static final Set<String> CODE_CONTAINING_SRC_DIRS = Set.of(
             "java", "kotlin", "groovy", "scala", "clojure",
             "webapp/WEB-INF", "resources/META-INF"
@@ -73,10 +68,8 @@ public class DevModeMojo extends CommonDevMojo {
     private void enableOrDeploy() throws IOException {
         var result = deployer.sendEnableCommand((a, b) -> { });
         if (result == CommandResult.NO_CONNECTION) {
-            callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "unpack",
-                    "unpack-payara", project, session, pluginManager, this::addSkipConfiguration);
-            callGenericMojo("org.codehaus.mojo", "exec-maven-plugin", "exec",
-                    "start-payara-domain", project, session, pluginManager, this::addSkipConfiguration);
+            extractAppServer();
+            startAppServer();
             result = deployer.sendEnableCommand((a, b) -> { });
         }
         if (result == CommandResult.ERROR) {
@@ -122,11 +115,5 @@ public class DevModeMojo extends CommonDevMojo {
         Path relativePath = project.getBasedir().toPath()
                 .resolve("src/main").relativize(path);
         return CODE_CONTAINING_SRC_DIRS.stream().anyMatch(relativePath::startsWith);
-    }
-
-    private void addSkipConfiguration(Xpp3Dom configuration) {
-        var skipValue = new Xpp3Dom("skip");
-        skipValue.setValue("false");
-        configuration.addChild(skipValue);
     }
 }

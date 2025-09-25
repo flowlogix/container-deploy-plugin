@@ -22,17 +22,15 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 
 /**
- * Goal which stops the application server.
- * Works for both Payara and GlassFish servers.
+ * Goal which extracts a local copy of the application server.
  */
-@Mojo(name = "stop", requiresProject = false, threadSafe = true)
-public class ContainerStopMojo extends CommonDevMojo {
+@Mojo(name = "extract", requiresProject = false, threadSafe = true)
+public class ContainerExtractMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
-        if (!callGenericMojo("org.codehaus.mojo", "exec-maven-plugin", "exec",
-                "stop-payara-domain", project, session, pluginManager, this::addSkipConfiguration)) {
-            throw new MojoFailureException("Failed to stop container domain");
+        if (!extractAppServer()) {
+            throw new MojoFailureException("Failed to extract container");
         }
-        getLog().info("Application Server Stopped.");
+        getLog().info("Application Server Extracted.");
     }
 }

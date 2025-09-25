@@ -81,6 +81,10 @@ class Deployer {
         return sendCommand("undeploy", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()), responseCallback);
     }
 
+    public boolean pingServer() {
+        return sendCommand("ping", Map.of(), (a, b) -> { }) != CommandResult.NO_CONNECTION;
+    }
+
     @SuppressWarnings("checkstyle:MagicNumber")
     @SneakyThrows({IOException.class, InterruptedException.class})
     private CommandResult sendCommand(String command, Map<String, String> parameters,

@@ -22,17 +22,16 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 
 /**
- * Goal which stops the application server.
+ * Goal which starts the application server.
  * Works for both Payara and GlassFish servers.
  */
-@Mojo(name = "stop", requiresProject = false, threadSafe = true)
-public class ContainerStopMojo extends CommonDevMojo {
+@Mojo(name = "start", requiresProject = false, threadSafe = true)
+public class ContainerStartMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
-        if (!callGenericMojo("org.codehaus.mojo", "exec-maven-plugin", "exec",
-                "stop-payara-domain", project, session, pluginManager, this::addSkipConfiguration)) {
-            throw new MojoFailureException("Failed to stop container domain");
+        if (!startAppServer()) {
+            throw new MojoFailureException("Failed to start container domain");
         }
-        getLog().info("Application Server Stopped.");
+        getLog().info("Application Server Started.");
     }
 }

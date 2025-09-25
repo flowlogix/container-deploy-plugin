@@ -40,6 +40,11 @@ import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
  * Common parameters and code for dev and redeploy mojos
  */
 abstract class CommonDevMojo extends AbstractMojo {
+    /**
+     * Group ID of Apache Maven Plugins
+     */
+    public static final String ORG_APACHE_MAVEN_PLUGINS = "org.apache.maven.plugins";
+
     @Inject
     MavenProject project;
 
@@ -114,5 +119,25 @@ abstract class CommonDevMojo extends AbstractMojo {
             getLog().debug("Failed to execute %s:%s:%s".formatted(groupId, artifactId, goal), e);
             return false;
         }
+    }
+
+    void addSkipConfiguration(Xpp3Dom configuration) {
+        var skipValue = new Xpp3Dom("skip");
+        skipValue.setValue("false");
+        configuration.addChild(skipValue);
+    }
+
+    boolean extractAppServer() {
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "unpack",
+                "unpack-payara", project, session, pluginManager, this::addSkipConfiguration);
+    }
+
+    boolean startAppServer() {
+        if (!deployer.pingServer()) {
+            return callGenericMojo("org.codehaus.mojo", "exec-maven-plugin", "exec",
+                    "start-payara-domain", project, session, pluginManager, this::addSkipConfiguration);
+        }
+        getLog().info("Server already running");
+        return false;
     }
 }
