@@ -1,19 +1,98 @@
-= README
+= Jakarta EE Container Deploy Plugin
 
-This project has been automatically generated using the
-https://start.flowlogix.com[FlowLogix Quick Start] tool from the
-https://github.com/flowlogix/depchain[FlowLogix Depchain Starter] archetype.
+Dev mode, and deploy utilities for Payara and GlassFish Server.
+Includes BrowserSync functionality for Jakarta Faces applications.
 
-== Running the sample
-[source,shell]
+== `dev` mode
+
+The `dev` goal is the centerpiece of this plugin. It provides a streamlined development experience with automatic builds, deployments, and browser refreshing.
+
+To start `dev` mode, run the following command:
+
+[source,bash]
 ----
-./mvnw verify
+mvn payara:dev
 ----
 
-== Regenerating the project
-To regenerate the project, run the following command:
-[source,shell]
+This will:
+
+. Start the Payara/GlassFish server if it's not already running. The plugin automatically unpacks the server distribution and starts the domain.
+. Build and deploy your application in an exploded WAR format.
+. Open your application in your default web browser.
+. Watch for file changes in the `src/main` directory.
+
+=== How it Works
+
+The `dev` mode is designed to be intelligent and efficient. Here's how it handles different scenarios:
+
+*   **Initial Run**: On the first run, the plugin checks if the application is already deployed and the server is running.
+    ** If the server is not running, it will be started automatically.
+    ** If the application is not deployed, it will be compiled and deployed.
+*   **File Changes**: When a file is saved, the plugin detects the change and triggers a build and/or redeployment:
+    ** **Source Code Changes**: If you change a Java, Kotlin, or other source file, the plugin will recompile the code and then hot-redeploy the application. This is usually much faster than a full redeployment.
+    ** **Resource Changes**: If you change a resource file (e.g., XHTML, CSS, JavaScript), the plugin will update the exploded WAR and the changes will be reflected in the browser, often without a full application reload.
+*   **BrowserSync**: The plugin provides live-reloading capabilities. When you make changes to your application, the browser will automatically refresh to show the latest updates.
+
+== Other Goals
+
+The plugin also provides the following goals for more granular control:
+
+*   `payara:deploy`: Deploys the application to the server.
+*   `payara:undeploy`: Undeploys the application from the server.
+*   `payara:stop`: Stops the application server.
+
+== Usage
+
+To use the plugin, add the following to your `pom.xml`:
+
+[source,xml]
+.Note: substitute LATEST with the actual latest version number
 ----
-mvn archetype:generate -DarchetypeGroupId=com.flowlogix.archetypes -DarchetypeArtifactId=starter \
--DarchetypeVersion=LATEST
+<build>
+    <plugins>
+        <plugin>
+            <groupId>com.flowlogix.plugins</groupId>
+            <artifactId>container-deploy-plugin</artifactId>
+            <version>LATEST</version>
+        </plugin>
+    </plugins>
+</build>
 ----
+
+== Configuration
+
+The plugin can be configured with the following parameters:
+
+|===
+| Parameter | Description | Default Value | Property
+
+| `payaraAdminUrl`
+| Administration URL to connect to the Server
+| `http://localhost:4848`
+| `payara.adminUrl`
+
+| `payaraHttpPort`
+| HTTP port where the application is deployed
+| `8080`
+| `payara.httpPort`
+
+| `force`
+| Force deployment even if the server says the application is already deployed
+| `false`
+| `payara.force`
+
+| `warlibs`
+| Whether to include libraries from server's `lib/warlibs` directory
+| `true`
+| `payara.warlibs`
+
+| `availabilityenabled`
+| Whether to enable availability on the deployed application
+| `true`
+| `payara.availabilityenabled`
+
+| `keepstate`
+| Whether to keep the state of the application on redeploy (secondary option to availabilityenabled)
+| `false`
+| `payara.keepstate`
+|===
