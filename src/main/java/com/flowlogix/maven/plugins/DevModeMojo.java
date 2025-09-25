@@ -82,7 +82,11 @@ public class DevModeMojo extends CommonDevMojo {
         String httpUrl = payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
         var browseURL = URI.create("%s/%s".formatted(httpUrl, project.getBuild().getFinalName()));
         getLog().info("Application URL at " + browseURL);
-        Desktop.getDesktop().browse(browseURL);
+        try {
+            Desktop.getDesktop().browse(browseURL);
+        } catch (UnsupportedOperationException e) {
+            getLog().debug("Cannot open browser" , e);
+        }
     }
 
     private void onChange(Set<Path> modifiedFiles) {
