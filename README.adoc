@@ -40,6 +40,8 @@ The plugin also provides the following goals for more granular control:
 
 *   `payara:deploy`: Deploys the application to the server.
 *   `payara:undeploy`: Undeploys the application from the server.
+*   `payara:extract`: Extracts the application server distribution.
+*   `payara:start`: Starts the application server.
 *   `payara:stop`: Stops the application server.
 
 == Usage
