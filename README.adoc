@@ -12,7 +12,11 @@ To start `dev` mode, run the following command:
 [source,bash]
 ----
 mvn payara:dev
-mvnd payara:dev (for much-faster startup)
+----
+[source,bash]
+.Note: for much faster startup, use the mvnd command if you have it installed
+----
+mvnd payara:dev
 ----
 
 This will:
