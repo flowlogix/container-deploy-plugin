@@ -20,7 +20,7 @@
     <properties>
         <!-- Override target java release -->
         <maven.compiler.release>17</maven.compiler.release>
-        <flowlogix.depchain.version>80</flowlogix.depchain.version>
+        <flowlogix.depchain.version>81</flowlogix.depchain.version>
         <maven.version>3.9.11</maven.version>
         <checkstyle.suppressionsLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/suppressions.xml</checkstyle.suppressionsLocation>
         <checkstyle.headerLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/apache-header.txt</checkstyle.headerLocation>
