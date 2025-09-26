@@ -48,6 +48,8 @@ public class DevModeMojo extends CommonDevMojo {
     private final Path explodedWarDir = Paths.get(project.getBuild().getDirectory(), project.getBuild().getFinalName());
     @Getter(lazy = true)
     private final Path srcMainDir = Paths.get(project.getBasedir().getAbsolutePath(), "src", "main");
+    @Getter(lazy = true)
+    private final String appURL = computeApplicationURL();
 
     @Override
     @SneakyThrows(IOException.class)
@@ -79,11 +81,10 @@ public class DevModeMojo extends CommonDevMojo {
             }
             deployer.sendDeployCommand(deployer::printResponse, 0);
         }
-        String httpUrl = payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
-        var browseURL = URI.create("%s/%s".formatted(httpUrl, project.getBuild().getFinalName()));
-        getLog().info("Application URL at " + browseURL);
+
+        getLog().info("Application URL at " + getAppURL());
         try {
-            Desktop.getDesktop().browse(browseURL);
+            Desktop.getDesktop().browse(URI.create(getAppURL()));
         } catch (UnsupportedOperationException e) {
             getLog().debug("Cannot open browser" , e);
         }
@@ -100,6 +101,9 @@ public class DevModeMojo extends CommonDevMojo {
             } else {
                 deployer.sendEnableCommand(deployer::printResponse);
             }
+        }
+        if (deployer.sendReloadCommand(getAppURL(), deployer::printResponse) == CommandResult.ERROR) {
+            getLog().warn("Reload failed");
         }
     }
 
@@ -119,5 +123,10 @@ public class DevModeMojo extends CommonDevMojo {
         Path relativePath = project.getBasedir().toPath()
                 .resolve("src/main").relativize(path);
         return CODE_CONTAINING_SRC_DIRS.stream().anyMatch(relativePath::startsWith);
+    }
+
+    private String computeApplicationURL() {
+        String httpUrl = payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
+        return "%s/%s".formatted(httpUrl, project.getBuild().getFinalName());
     }
 }
