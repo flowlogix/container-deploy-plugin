@@ -9,7 +9,7 @@
 
     <name>Jakarta EE Container Deploy Plugin</name>
     <description>Dev mode, and deploy utilities for Payara and GlassFish Server
-    Includes BrowserSync functionality for Jakarta Faces applications</description>
+    Includes Live Reload functionality for Jakarta Faces applications</description>
 
     <parent>
         <groupId>com.flowlogix</groupId>

@@ -1,7 +1,7 @@
 = Jakarta EE Container Deploy Plugin
 
 Dev mode, and deploy utilities for Payara and GlassFish Server.
-Includes BrowserSync functionality for Jakarta Faces applications.
+Includes Live Reload functionality for Jakarta Faces applications.
 
 == `dev` mode
 
@@ -36,7 +36,7 @@ The `dev` mode is designed to be intelligent and efficient. Here's how it handle
 *   **File Changes**: When a file is saved, the plugin detects the change and triggers a build and/or redeployment:
     ** **Source Code Changes**: If you change a Java, Kotlin, or other source file, the plugin will recompile the code and then hot-redeploy the application. This is usually much faster than a full redeployment.
     ** **Resource Changes**: If you change a resource file (e.g., XHTML, CSS, JavaScript), the plugin will update the exploded WAR and the changes will be reflected in the browser, often without a full application reload.
-*   **BrowserSync**: The plugin provides live-reloading capabilities. When you make changes to your application, the browser will automatically refresh to show the latest updates.
+*   **Live Reload**: The plugin provides live-reloading capabilities. When you make changes to your application, the browser will automatically refresh to show the latest updates.
 
 == Other Goals
 
