@@ -30,7 +30,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 public class UndeployMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
-        if (deployer.sendUndeployCommand(deployer::printResponse) == CommandResult.ERROR) {
+        if (deployer.sendUndeployCommand(deployer::printResponse) != CommandResult.SUCCESS) {
             throw new MojoFailureException("Undeployment failed, see log for details.");
         }
         getLog().info("Application undeployed.");

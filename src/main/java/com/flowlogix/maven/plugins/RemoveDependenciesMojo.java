@@ -18,22 +18,27 @@
  */
 package com.flowlogix.maven.plugins;
 
-import com.flowlogix.maven.plugins.Deployer.CommandResult;
+import com.flowlogix.maven.plugins.Deployer.ServerLocations;
+import lombok.SneakyThrows;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.codehaus.plexus.util.FileUtils;
+import java.io.IOException;
 
 /**
- * Goal which deploys application to the server.
- * Works for both Payara and GlassFish servers.
+ * Goal which removes dependencies from lib/warlibs directory.
  */
-@Mojo(name = "deploy", requiresProject = false, threadSafe = true)
-public class DeployMojo extends CommonDevMojo {
+@Mojo(name = "remove-deps", requiresProject = false, threadSafe = true)
+public class RemoveDependenciesMojo extends CommonDevMojo {
     @Override
+    @SneakyThrows(IOException.class)
     public void execute() throws MojoFailureException {
-        getLog().info("Deploying application...");
-        if (deployer.sendDeployCommand(deployer::printResponse, null) != CommandResult.SUCCESS) {
-            throw new MojoFailureException("Deployment failed, see log for details.");
+        ServerLocations locations = deployer.serverLocations();
+        if (locations == null) {
+            throw new MojoFailureException("Error determining server locations, is the server running?");
         }
-        getLog().info("Application deployed.");
+        String destination = "%s/lib/warlibs".formatted(locations.properties().instanceRoot());
+        FileUtils.cleanDirectory(destination);
+        getLog().info("Removed dependencies from %s - restart may be required (mvn payara:restart)".formatted(destination));
     }
 }

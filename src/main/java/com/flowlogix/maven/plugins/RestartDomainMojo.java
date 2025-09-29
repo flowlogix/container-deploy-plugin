@@ -33,6 +33,9 @@ import java.util.stream.IntStream;
 public class RestartDomainMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
+        if (!deployer.pingServer()) {
+            throw new MojoFailureException("Server is not running.");
+        }
         if (deployer.sendCommand("restart-domain", Map.of(),
                 deployer::printResponse) == CommandResult.ERROR) {
             throw new MojoFailureException("Restart failed, see log for details.");

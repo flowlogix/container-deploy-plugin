@@ -122,14 +122,30 @@ abstract class CommonDevMojo extends AbstractMojo {
     }
 
     void addSkipConfiguration(Xpp3Dom configuration) {
-        var skipValue = new Xpp3Dom("skip");
-        skipValue.setValue("false");
-        configuration.addChild(skipValue);
+        Xpp3Dom skipValue;
+        if (configuration.getChild("skip") != null) {
+            skipValue = configuration.getChild("skip");
+            skipValue.setValue("false");
+        } else {
+            skipValue = new Xpp3Dom("skip");
+            skipValue.setValue("false");
+            configuration.addChild(skipValue);
+        }
     }
 
     boolean extractAppServer() {
         return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "unpack",
                 "unpack-payara", project, session, pluginManager, this::addSkipConfiguration);
+    }
+
+    boolean copyDependencies(String location) {
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "copy-dependencies",
+                null, project, session, pluginManager, config -> {
+                    addSkipConfiguration(config);
+                    var outputDirectory = new Xpp3Dom("outputDirectory");
+                    outputDirectory.setValue(location);
+                    config.addChild(outputDirectory);
+                });
     }
 
     boolean startAppServer() {

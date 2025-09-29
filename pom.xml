@@ -43,6 +43,11 @@
             <version>${flowlogix.depchain.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse</groupId>
+            <artifactId>yasson</artifactId>
+            <version>3.0.4</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.maven</groupId>

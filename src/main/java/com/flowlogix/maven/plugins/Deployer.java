@@ -18,6 +18,8 @@
  */
 package com.flowlogix.maven.plugins;
 
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.annotation.JsonbProperty;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -33,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,6 +54,22 @@ class Deployer {
         NO_CONNECTION, ERROR, SUCCESS
     }
     record CommandResponse(int statusCode, String body) { }
+    public record ServerLocations(
+            String message,
+            String command,
+            String exit_code,
+            Properties properties
+    ) {
+        public record Properties(
+                @JsonbProperty("Restart-Required") String restartRequired,
+                @JsonbProperty("Instance-Root") String instanceRoot,
+                @JsonbProperty("Base-Root") String baseRoot,
+                @JsonbProperty("Uptime") String uptime,
+                @JsonbProperty("Domain-Root") String domainRoot,
+                @JsonbProperty("Pid") String pid,
+                @JsonbProperty("Config-Dir") String configDir
+        ) { }
+    }
 
     @Delegate
     private final CommonDevMojo mojo;
@@ -90,6 +109,27 @@ class Deployer {
 
     public boolean pingServer() {
         return sendCommand("ping", Map.of(), (a, b) -> { }) != CommandResult.NO_CONNECTION;
+    }
+
+    ServerLocations serverLocations() {
+        AtomicReference<ServerLocations> serverLocations = new AtomicReference<>();
+        return switch (sendCommand("__locations", Map.of(),
+                (command, response) -> serverLocationsResponse(command, response, serverLocations))) {
+            case NO_CONNECTION, ERROR -> null;
+            case SUCCESS -> serverLocations.get();
+        };
+    }
+
+    @SneakyThrows
+    @SuppressWarnings("checkstyle:MagicNumber")
+    private void serverLocationsResponse(String command, CommandResponse response,
+                                         AtomicReference<ServerLocations> serverLocations) {
+        if (response.statusCode() != 200) {
+            printResponse(command, response);
+        }
+        try (var jsonb = JsonbBuilder.create()) {
+            serverLocations.set(jsonb.fromJson(response.body(), ServerLocations.class));
+        }
     }
 
     @SuppressWarnings("checkstyle:MagicNumber")
@@ -147,7 +187,7 @@ class Deployer {
                     .formatted(mojo.payaraAminURL));
             return;
         }
-        if (response.statusCode() != 200) {
+        if (response.statusCode() != 200 && response.statusCode() != 0) {
             getLog().error("Command %s failed with response code %d".formatted(command, response.statusCode()));
             getLog().error("Response body: %s".formatted(response.body()));
         }
