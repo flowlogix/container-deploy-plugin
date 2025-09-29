@@ -93,7 +93,7 @@ class Deployer {
     }
 
     @SuppressWarnings("checkstyle:MagicNumber")
-    @SneakyThrows({IOException.class, InterruptedException.class})
+    @SneakyThrows(InterruptedException.class)
     CommandResult sendCommand(String command, Map<String, String> parameters,
                                       @NonNull BiConsumer<String, CommandResponse> responseCallback) {
         getLog().debug("Parameters: " + parameters);
@@ -112,9 +112,9 @@ class Deployer {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (ConnectException e) {
-            responseCallback.accept(command, null);
-            return CommandResult.NO_CONNECTION;
+        } catch (IOException e) {
+            responseCallback.accept(command, new CommandResponse(0, e.getMessage()));
+            return e instanceof ConnectException ? CommandResult.NO_CONNECTION : CommandResult.ERROR;
         }
         responseCallback.accept(command, new CommandResponse(response.statusCode(), response.body()));
         return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;

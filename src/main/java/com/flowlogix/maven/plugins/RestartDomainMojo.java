@@ -19,9 +19,11 @@
 package com.flowlogix.maven.plugins;
 
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
+import lombok.SneakyThrows;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * Goal which restarts the application server.
@@ -35,6 +37,19 @@ public class RestartDomainMojo extends CommonDevMojo {
                 deployer::printResponse) == CommandResult.ERROR) {
             throw new MojoFailureException("Restart failed, see log for details.");
         }
-        getLog().info("Application Server restarted.");
+        @SuppressWarnings("checkstyle:MagicNumber")
+        boolean serverStarted = IntStream.range(0, 30).anyMatch(this::ping);
+        if (serverStarted) {
+            getLog().info("Application Server restarted.");
+        } else {
+            getLog().warn("Application Server restart timed out after 30 seconds.");
+        }
+    }
+
+    @SneakyThrows(InterruptedException.class)
+    @SuppressWarnings("checkstyle:MagicNumber")
+    private boolean ping(int attempt) {
+        Thread.sleep(1000);
+        return deployer.pingServer();
     }
 }

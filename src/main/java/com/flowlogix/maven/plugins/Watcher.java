@@ -76,6 +76,7 @@ class Watcher {
                     onChange.accept(modifiedFiles);
                 }
             }
+            Thread.currentThread().interrupt();
         }
     }
 
