@@ -94,7 +94,7 @@ class Deployer {
 
     @SuppressWarnings("checkstyle:MagicNumber")
     @SneakyThrows({IOException.class, InterruptedException.class})
-    private CommandResult sendCommand(String command, Map<String, String> parameters,
+    CommandResult sendCommand(String command, Map<String, String> parameters,
                                       @NonNull BiConsumer<String, CommandResponse> responseCallback) {
         getLog().debug("Parameters: " + parameters);
         HttpResponse<String> response;
