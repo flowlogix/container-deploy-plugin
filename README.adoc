@@ -50,7 +50,7 @@ The plugin also provides the following goals for more granular control:
 *   `payara:start`: Starts the application server.
 *   `payara:stop`: Stops the application server.
 *   `payara:restart`: Restarts the application server.
-*   `payara:deps`: Copies project dependencies to the server's `lib/warlibs` directory.
+*   `payara:deps`: Cleans and copies project dependencies to the server's `lib/warlibs` directory.
 *   `payara:clean`: Removes all dependencies from the server's `lib/warlibs` directory.
 
 == Usage
@@ -107,4 +107,9 @@ The plugin can be configured with the following parameters:
 | Whether to keep the state of the application on redeploy (secondary option to availabilityenabled)
 | `false`
 | `payara.keepstate`
+
+| `name`
+| Name of the application on the server. Applies only to deploy or undeploy goals. Defaults to the project's final name.
+| `null`
+| `name`
 |===
