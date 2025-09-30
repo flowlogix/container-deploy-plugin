@@ -19,6 +19,7 @@
 package com.flowlogix.maven.plugins;
 
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.BuildPluginManager;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -27,6 +28,7 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jspecify.annotations.Nullable;
 import javax.inject.Inject;
+import java.util.Objects;
 import java.util.function.Consumer;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
@@ -100,7 +102,10 @@ abstract class CommonDevMojo extends AbstractMojo {
             var plugin = project.getPlugin("%s:%s".formatted(groupId, artifactId));
             Xpp3Dom configuration;
             if (execution != null) {
-                configuration = (Xpp3Dom) plugin.getExecutionsAsMap().get(execution).getConfiguration();
+                PluginExecution pluginExecution = plugin.getExecutionsAsMap().get(execution);
+                Objects.requireNonNull(pluginExecution, "Cannot find execution %s in %s:%s"
+                        .formatted(execution, groupId, artifactId));
+                configuration = (Xpp3Dom) pluginExecution.getConfiguration();
             } else {
                 configuration = (Xpp3Dom) plugin.getConfiguration();
             }
