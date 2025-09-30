@@ -160,6 +160,25 @@ class Deployer {
         return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
     }
 
+    @SneakyThrows(InterruptedException.class)
+    @SuppressWarnings("checkstyle:MagicNumber")
+    boolean pingWebsite(String applicationUrl) {
+        HttpResponse<Void> response;
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(applicationUrl))
+                    .GET()
+                    .build();
+            response = client.send(request, HttpResponse.BodyHandlers.discarding());
+        } catch (IOException e) {
+            return false;
+        } catch (InterruptedException ie) {
+            throw ie;
+        }
+        return response.statusCode() != 404 && response.statusCode() != 500;
+    }
+
     @SuppressWarnings("checkstyle:MagicNumber")
     @SneakyThrows({IOException.class, InterruptedException.class})
     public CommandResult sendReloadCommand(String applicationUrl,

@@ -29,7 +29,10 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import static java.util.function.Predicate.not;
 
 /**
@@ -88,11 +91,30 @@ public class DevModeMojo extends CommonDevMojo {
         }
 
         getLog().info("Application URL at " + getAppURL());
-        try {
-            Desktop.getDesktop().browse(URI.create(getAppURL()));
-        } catch (UnsupportedOperationException e) {
-            getLog().debug("Cannot open browser" , e);
+        ForkJoinPool.commonPool().execute(() -> {
+            @SuppressWarnings("checkstyle:MagicNumber")
+            boolean websiteDeployed = IntStream.range(0, 30).anyMatch(this::pingWebsite);
+            if (websiteDeployed) {
+                try {
+                    Desktop.getDesktop().browse(URI.create(getAppURL()));
+                } catch (UnsupportedOperationException | IOException e) {
+                    getLog().debug("Cannot open browser" , e);
+                }
+            } else {
+                getLog().warn("Website not available after 30 seconds.");
+            }
+        });
+    }
+
+    @SneakyThrows(InterruptedException.class)
+    @SuppressWarnings("checkstyle:MagicNumber")
+    private boolean pingWebsite(int attempt) {
+        boolean result = deployer.pingWebsite(getAppURL());
+        if (!result) {
+            getLog().debug("Website not available yet, waiting...");
+            Thread.sleep(1000);
         }
+        return result;
     }
 
     private void onChange(Set<Path> modifiedFiles) {
