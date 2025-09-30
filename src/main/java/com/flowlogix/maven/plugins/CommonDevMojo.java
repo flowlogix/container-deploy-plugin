@@ -145,7 +145,7 @@ abstract class CommonDevMojo extends AbstractMojo {
 
     boolean copyDependencies(String location) {
         return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "copy-dependencies",
-                null, project, session, pluginManager, config -> {
+                "default-cli", project, session, pluginManager, config -> {
                     addSkipConfiguration(config);
                     var outputDirectory = new Xpp3Dom("outputDirectory");
                     outputDirectory.setValue(location);
