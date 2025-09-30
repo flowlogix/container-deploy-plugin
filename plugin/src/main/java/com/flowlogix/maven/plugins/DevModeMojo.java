@@ -56,6 +56,8 @@ public class DevModeMojo extends CommonDevMojo {
     @Getter(lazy = true)
     private final Path srcMainDir = Paths.get(project.getBasedir().getAbsolutePath(), "src", "main");
     @Getter(lazy = true)
+    private final String baseURL = computeBaseURL();
+    @Getter(lazy = true)
     private final String appURL = computeApplicationURL();
 
     @Override
@@ -86,10 +88,14 @@ public class DevModeMojo extends CommonDevMojo {
                 compileSources();
                 explodedWar();
             }
-            deployer.sendDeployCommand(deployer::printResponse, 0);
+            // TODO: deploy the flowlogix-livereload app
+            deployer.sendDeployCommand(deployer::printResponse, null, 0);
         }
 
         getLog().info("Application URL at " + getAppURL());
+        getLog().info("App Server at %s".formatted(deployer.serverLocations().properties().instanceRoot()));
+        getLog().info("Logging at %s/logs/server.log".formatted(deployer.serverLocations().properties().instanceRoot()));
+        getLog().info("Deps at %s/lib/warlibs/".formatted(deployer.serverLocations().properties().instanceRoot()));
         ForkJoinPool.commonPool().execute(() -> {
             @SuppressWarnings("checkstyle:MagicNumber")
             boolean websiteDeployed = IntStream.range(0, 30).anyMatch(this::pingWebsite);
@@ -129,12 +135,13 @@ public class DevModeMojo extends CommonDevMojo {
         if (codeChanged) {
             getLog().info("Reloading " + project.getBuild().getFinalName());
             if (deployer.sendDisableCommand(deployer::printResponse) == CommandResult.ERROR) {
-                deployer.sendDeployCommand(deployer::printResponse, 0);
+                deployer.sendDeployCommand(deployer::printResponse, null, 0);
             } else {
                 deployer.sendEnableCommand(deployer::printResponse);
             }
         }
-        if (deployer.sendReloadCommand(getAppURL(), deployer::printResponse) == CommandResult.ERROR) {
+        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+                deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Reload failed");
         }
     }
@@ -161,8 +168,11 @@ public class DevModeMojo extends CommonDevMojo {
         return IGNORED_FILE_SUFFIXES.stream().anyMatch(path.toString()::endsWith);
     }
 
+    private String computeBaseURL() {
+        return payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
+    }
+
     private String computeApplicationURL() {
-        String httpUrl = payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
-        return "%s/%s".formatted(httpUrl, project.getBuild().getFinalName());
+        return "%s/%s".formatted(getBaseURL(), project.getBuild().getFinalName());
     }
 }

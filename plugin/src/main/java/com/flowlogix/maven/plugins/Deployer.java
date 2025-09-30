@@ -85,14 +85,14 @@ class Deployer {
     }
 
     CommandResult sendDeployCommand(@NonNull BiConsumer<String, CommandResponse> responseCallback,
-                                    Integer cacheTTL) {
+                                    String name, Integer cacheTTL) {
         getLog().info("Sending deploy command");
         String properties = Stream.of("warlibs=%s".formatted(String.valueOf(mojo.warlibs)),
                         cacheTTL != null ? "cacheTTL=%d".formatted(cacheTTL) : null)
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(":"));
         return sendCommand("deploy", Map.of(
-                "name", mojo.project.getBuild().getFinalName(),
+                "name", name != null ? name : mojo.project.getBuild().getFinalName(),
                 "availabilityenabled", String.valueOf(mojo.availabilityenabled),
                 "keepstate", String.valueOf(mojo.keepstate),
                 "force", String.valueOf(mojo.force),
@@ -102,9 +102,10 @@ class Deployer {
         ), responseCallback);
     }
 
-    CommandResult sendUndeployCommand(@NonNull BiConsumer<String, CommandResponse> responseCallback) {
+    CommandResult sendUndeployCommand(String name, @NonNull BiConsumer<String, CommandResponse> responseCallback) {
         getLog().info("Sending undeploy command");
-        return sendCommand("undeploy", Map.of(DEFAULT, mojo.project.getBuild().getFinalName()), responseCallback);
+        return sendCommand("undeploy", Map.of(DEFAULT, name == null
+                ? mojo.project.getBuild().getFinalName() : name), responseCallback);
     }
 
     public boolean pingServer() {
@@ -181,13 +182,13 @@ class Deployer {
 
     @SuppressWarnings("checkstyle:MagicNumber")
     @SneakyThrows({IOException.class, InterruptedException.class})
-    public CommandResult sendReloadCommand(String applicationUrl,
+    public CommandResult sendReloadCommand(String baseURL, String applicationName,
                                            @NonNull BiConsumer<String, CommandResponse> responseCallback) {
         HttpResponse<Void> response;
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/flowlogix/reload".formatted(applicationUrl)))
+                    .uri(URI.create("%s/flowlogix-livereload/reload/%s".formatted(baseURL, applicationName)))
                     .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
             response = client.send(request, HttpResponse.BodyHandlers.discarding());

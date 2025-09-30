@@ -21,6 +21,7 @@ package com.flowlogix.maven.plugins;
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 
 /**
  * Goal which undeploys application from the server.
@@ -28,9 +29,12 @@ import org.apache.maven.plugins.annotations.Mojo;
  */
 @Mojo(name = "undeploy", requiresProject = false, threadSafe = true)
 public class UndeployMojo extends CommonDevMojo {
+    @Parameter(property = "name")
+    String name;
+
     @Override
     public void execute() throws MojoFailureException {
-        if (deployer.sendUndeployCommand(deployer::printResponse) != CommandResult.SUCCESS) {
+        if (deployer.sendUndeployCommand(name, deployer::printResponse) != CommandResult.SUCCESS) {
             throw new MojoFailureException("Undeployment failed, see log for details.");
         }
         getLog().info("Application undeployed.");

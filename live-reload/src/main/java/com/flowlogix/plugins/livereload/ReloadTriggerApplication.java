@@ -16,24 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.flowlogix.maven.plugins;
+package com.flowlogix.plugins.livereload;
 
-import com.flowlogix.maven.plugins.Deployer.CommandResult;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Mojo;
+import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.core.Application;
 
-/**
- * Goal which deploys application to the server.
- * Works for both Payara and GlassFish servers.
- */
-@Mojo(name = "deploy", requiresProject = false, threadSafe = true)
-public class DeployMojo extends CommonDevMojo {
-    @Override
-    public void execute() throws MojoFailureException {
-        getLog().info("Deploying application...");
-        if (deployer.sendDeployCommand(deployer::printResponse, null) != CommandResult.SUCCESS) {
-            throw new MojoFailureException("Deployment failed, see log for details.");
-        }
-        getLog().info("Application deployed.");
-    }
+@ApplicationPath("/")
+public class ReloadTriggerApplication extends Application {
 }

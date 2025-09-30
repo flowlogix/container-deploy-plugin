@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.flowlogix.plugins</groupId>
-    <artifactId>container-deploy-plugin</artifactId>
-    <packaging>maven-plugin</packaging>
+    <artifactId>container-deploy-plugin-root</artifactId>
+    <packaging>pom</packaging>
     <version>1.x-SNAPSHOT</version>
 
-    <name>Jakarta EE Container Deploy Plugin</name>
+    <name>Jakarta EE Container Deploy Plugin Root</name>
     <description>Dev mode, and deploy utilities for Payara and GlassFish Server
     Includes Live Reload functionality for Jakarta Faces applications</description>
 
@@ -17,11 +17,15 @@
         <version>72</version>
     </parent>
 
+    <modules>
+        <module>plugin</module>
+        <module>live-reload</module>
+    </modules>
+
     <properties>
         <!-- Override target java release -->
         <maven.compiler.release>17</maven.compiler.release>
         <flowlogix.depchain.version>82</flowlogix.depchain.version>
-        <maven.version>3.9.11</maven.version>
         <checkstyle.suppressionsLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/suppressions.xml</checkstyle.suppressionsLocation>
         <checkstyle.headerLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/apache-header.txt</checkstyle.headerLocation>
         <!-- Turn off maven build cache -->
@@ -43,61 +47,5 @@
             <version>${flowlogix.depchain.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse</groupId>
-            <artifactId>yasson</artifactId>
-            <version>3.0.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-plugin-api</artifactId>
-            <version>${maven.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugin-tools</groupId>
-            <artifactId>maven-plugin-annotations</artifactId>
-            <version>3.15.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.twdata.maven</groupId>
-            <artifactId>mojo-executor</artifactId>
-            <version>2.4.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-core</artifactId>
-            <version>${maven.version}</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-plugin-plugin</artifactId>
-                <configuration>
-                    <goalPrefix>payara</goalPrefix>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>help-mojo</id>
-                        <goals>
-                            <goal>helpmojo</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <artifactId>maven-plugin-plugin</artifactId>
-                    <version>3.15.1</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
 </project>
