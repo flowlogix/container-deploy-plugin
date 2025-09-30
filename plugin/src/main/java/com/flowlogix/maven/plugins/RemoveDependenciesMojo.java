@@ -28,7 +28,7 @@ import java.io.IOException;
 /**
  * Goal which removes dependencies from lib/warlibs directory.
  */
-@Mojo(name = "remove-deps", requiresProject = false, threadSafe = true)
+@Mojo(name = "clean", requiresProject = false, threadSafe = true)
 public class RemoveDependenciesMojo extends CommonDevMojo {
     @Override
     @SneakyThrows(IOException.class)

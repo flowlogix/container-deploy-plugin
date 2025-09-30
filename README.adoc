@@ -51,7 +51,7 @@ The plugin also provides the following goals for more granular control:
 *   `payara:stop`: Stops the application server.
 *   `payara:restart`: Restarts the application server.
 *   `payara:deps`: Copies project dependencies to the server's `lib/warlibs` directory.
-*   `payara:remove-deps`: Removes all dependencies from the server's `lib/warlibs` directory.
+*   `payara:clean`: Removes all dependencies from the server's `lib/warlibs` directory.
 
 == Usage
 
