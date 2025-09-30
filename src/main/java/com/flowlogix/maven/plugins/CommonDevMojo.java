@@ -45,6 +45,10 @@ abstract class CommonDevMojo extends AbstractMojo {
      * Group ID of Apache Maven Plugins
      */
     public static final String ORG_APACHE_MAVEN_PLUGINS = "org.apache.maven.plugins";
+    /**
+     * Artifact ID of Maven Dependency Plugin
+     */
+    public static final String MAVEN_DEPENDENCY_PLUGIN = "maven-dependency-plugin";
 
     @Inject
     MavenProject project;
@@ -103,8 +107,12 @@ abstract class CommonDevMojo extends AbstractMojo {
             if (execution != null) {
                 PluginExecution pluginExecution = plugin.getExecutionsAsMap().get(execution);
                 if (pluginExecution == null) {
-                    getLog().warn("""
-                            Cannot find execution %s for execution of %s:%s...
+                    getLog().warn("Cannot find execution %s for execution of %s:%s"
+                            .formatted(execution, groupId, artifactId));
+                    if (MAVEN_DEPENDENCY_PLUGIN.equals(artifactId)
+                            && "copy-dependencies".equals(goal)
+                        && ORG_APACHE_MAVEN_PLUGINS.equals(groupId)) {
+                        getLog().warn("""
                             Copied dependencies are probably incorrect.
                             You probably need to add the following in your pom.xml:
                             <plugin>
@@ -119,7 +127,8 @@ abstract class CommonDevMojo extends AbstractMojo {
                                     </execution>
                                 </executions>
                             </plugin>
-                            """.formatted(execution, groupId, artifactId));
+                            """);
+                    }
                     configuration = (Xpp3Dom) plugin.getConfiguration();
                 } else {
                     configuration = (Xpp3Dom) pluginExecution.getConfiguration();
@@ -157,12 +166,12 @@ abstract class CommonDevMojo extends AbstractMojo {
     }
 
     boolean extractAppServer() {
-        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "unpack",
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, MAVEN_DEPENDENCY_PLUGIN, "unpack",
                 "unpack-payara", project, session, pluginManager, this::addSkipConfiguration);
     }
 
     boolean copyDependencies(String location) {
-        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, "maven-dependency-plugin", "copy-dependencies",
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, MAVEN_DEPENDENCY_PLUGIN, "copy-dependencies",
                 "default-cli", project, session, pluginManager, config -> {
                     addSkipConfiguration(config);
                     var outputDirectory = new Xpp3Dom("outputDirectory");
