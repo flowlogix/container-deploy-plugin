@@ -28,7 +28,6 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jspecify.annotations.Nullable;
 import javax.inject.Inject;
-import java.util.Objects;
 import java.util.function.Consumer;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
@@ -103,9 +102,28 @@ abstract class CommonDevMojo extends AbstractMojo {
             Xpp3Dom configuration;
             if (execution != null) {
                 PluginExecution pluginExecution = plugin.getExecutionsAsMap().get(execution);
-                Objects.requireNonNull(pluginExecution, "Cannot find execution %s in %s:%s"
-                        .formatted(execution, groupId, artifactId));
-                configuration = (Xpp3Dom) pluginExecution.getConfiguration();
+                if (pluginExecution == null) {
+                    getLog().warn("""
+                            Cannot find execution %s for execution of %s:%s...
+                            Copied dependencies are probably incorrect.
+                            You probably need to add the following in your pom.xml:
+                            <plugin>
+                                <artifactId>maven-dependency-plugin</artifactId>
+                                <executions>
+                                    <execution>
+                                        <id>default-cli</id>
+                                        <configuration>
+                                            <includeScope>runtime</includeScope>
+                                            <excludeArtifactIds>postgresql, checker-qual</excludeArtifactIds>
+                                        </configuration>
+                                    </execution>
+                                </executions>
+                            </plugin>
+                            """.formatted(execution, groupId, artifactId));
+                    configuration = (Xpp3Dom) plugin.getConfiguration();
+                } else {
+                    configuration = (Xpp3Dom) pluginExecution.getConfiguration();
+                }
             } else {
                 configuration = (Xpp3Dom) plugin.getConfiguration();
             }
