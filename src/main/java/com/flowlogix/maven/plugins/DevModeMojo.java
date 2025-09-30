@@ -29,6 +29,8 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.stream.Collectors;
+import static java.util.function.Predicate.not;
 
 /**
  * Goal which deploys application in dev mode, opens browser and monitors
@@ -42,6 +44,9 @@ public class DevModeMojo extends CommonDevMojo {
     private static final Set<String> CODE_CONTAINING_SRC_DIRS = Set.of(
             "java", "kotlin", "groovy", "scala", "clojure",
             "webapp/WEB-INF", "resources/META-INF"
+    );
+    private static final Set<String> IGNORED_FILE_SUFFIXES = Set.of(
+            ".swp"
     );
 
     @Getter(lazy = true)
@@ -91,8 +96,14 @@ public class DevModeMojo extends CommonDevMojo {
     }
 
     private void onChange(Set<Path> modifiedFiles) {
-        boolean codeChanged = modifiedFiles.stream().filter(this::isSourceCode).findAny()
+        var filteredFiles = modifiedFiles.stream().filter(not(this::isIgnoredFile))
+                .collect(Collectors.toSet());
+        boolean codeChanged = filteredFiles.stream().filter(this::isSourceCode).findAny()
                 .map(var -> compileSources()).orElse(false);
+        if (filteredFiles.isEmpty()) {
+            return;
+        }
+
         explodedWar();
         if (codeChanged) {
             getLog().info("Reloading " + project.getBuild().getFinalName());
@@ -123,6 +134,10 @@ public class DevModeMojo extends CommonDevMojo {
         Path relativePath = project.getBasedir().toPath()
                 .resolve("src/main").relativize(path);
         return CODE_CONTAINING_SRC_DIRS.stream().anyMatch(relativePath::startsWith);
+    }
+
+    private boolean isIgnoredFile(Path path) {
+        return IGNORED_FILE_SUFFIXES.stream().anyMatch(path.toString()::endsWith);
     }
 
     private String computeApplicationURL() {
