@@ -48,7 +48,8 @@ class Deployer {
     /**
      *  Key for default parameter, which is the file to be deployed, enabled, disabled or undeployed.
      */
-    public static final String DEFAULT = "DEFAULT";
+    static final String DEFAULT = "DEFAULT";
+    static final String FLOWLOGIX_LIVERELOAD = "flowlogix-livereload";
 
     enum CommandResult {
         NO_CONNECTION, ERROR, SUCCESS
@@ -174,8 +175,6 @@ class Deployer {
             response = client.send(request, HttpResponse.BodyHandlers.discarding());
         } catch (IOException e) {
             return false;
-        } catch (InterruptedException ie) {
-            throw ie;
         }
         return response.statusCode() != 404 && response.statusCode() != 500;
     }
@@ -188,7 +187,7 @@ class Deployer {
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/flowlogix-livereload/reload/%s".formatted(baseURL, applicationName)))
+                    .uri(URI.create("%s/%s/reload/%s".formatted(baseURL, FLOWLOGIX_LIVERELOAD, applicationName)))
                     .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
             response = client.send(request, HttpResponse.BodyHandlers.discarding());

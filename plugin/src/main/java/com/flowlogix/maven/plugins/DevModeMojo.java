@@ -22,16 +22,20 @@ import com.flowlogix.maven.plugins.Deployer.CommandResult;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import static com.flowlogix.maven.plugins.Deployer.DEFAULT;
+import static com.flowlogix.maven.plugins.Deployer.FLOWLOGIX_LIVERELOAD;
 import static java.util.function.Predicate.not;
 
 /**
@@ -43,6 +47,7 @@ import static java.util.function.Predicate.not;
         requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
         requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class DevModeMojo extends CommonDevMojo {
+    static final String FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME = "flowlogix-livereload-helper";
     private static final Set<String> CODE_CONTAINING_SRC_DIRS = Set.of(
             "java", "kotlin", "groovy", "scala", "clojure",
             "webapp/WEB-INF", "resources/META-INF"
@@ -50,6 +55,9 @@ public class DevModeMojo extends CommonDevMojo {
     private static final Set<String> IGNORED_FILE_SUFFIXES = Set.of(
             ".swp"
     );
+
+    @Parameter(property = "livereload-helper-version", defaultValue = "0.5")
+    String livereloadHelperVersion;
 
     @Getter(lazy = true)
     private final Path explodedWarDir = Paths.get(project.getBuild().getDirectory(), project.getBuild().getFinalName());
@@ -88,27 +96,46 @@ public class DevModeMojo extends CommonDevMojo {
                 compileSources();
                 explodedWar();
             }
-            // TODO: deploy the flowlogix-livereload app
             deployer.sendDeployCommand(deployer::printResponse, null, 0);
         }
 
         getLog().info("Application URL at " + getAppURL());
-        getLog().info("App Server at %s".formatted(deployer.serverLocations().properties().instanceRoot()));
+        getLog().info("App Server at %s".formatted(deployer.serverLocations().properties().baseRoot()));
+        getLog().info("Domain at %s".formatted(deployer.serverLocations().properties().instanceRoot()));
         getLog().info("Logging at %s/logs/server.log".formatted(deployer.serverLocations().properties().instanceRoot()));
-        getLog().info("Deps at %s/lib/warlibs/".formatted(deployer.serverLocations().properties().instanceRoot()));
-        ForkJoinPool.commonPool().execute(() -> {
-            @SuppressWarnings("checkstyle:MagicNumber")
-            boolean websiteDeployed = IntStream.range(0, 30).anyMatch(this::pingWebsite);
-            if (websiteDeployed) {
-                try {
-                    Desktop.getDesktop().browse(URI.create(getAppURL()));
-                } catch (UnsupportedOperationException | IOException e) {
-                    getLog().debug("Cannot open browser" , e);
-                }
-            } else {
-                getLog().warn("Website not available after 30 seconds.");
+        getLog().info("Deps (optional) at %s/lib/warlibs/".formatted(deployer.serverLocations().properties().instanceRoot()));
+        ForkJoinPool.commonPool().execute(this::openBrowser);
+        ForkJoinPool.commonPool().execute(this::deployLiveReloadHelper);
+    }
+
+    private void openBrowser() {
+        @SuppressWarnings("checkstyle:MagicNumber")
+        boolean websiteDeployed = IntStream.range(0, 30).anyMatch(this::pingWebsite);
+        if (websiteDeployed) {
+            try {
+                Desktop.getDesktop().browse(URI.create(getAppURL()));
+            } catch (UnsupportedOperationException | IOException e) {
+                getLog().debug("Cannot open browser", e);
             }
-        });
+        } else {
+            getLog().warn("Website not available after 30 seconds.");
+        }
+    }
+
+    private void deployLiveReloadHelper() {
+        if (!deployer.pingWebsite("%s/%s/ping".formatted(baseURL, FLOWLOGIX_LIVERELOAD))) {
+            getLog().info("Deploying LiveReload helper application");
+            if (deployer.sendCommand("deploy-remote-archive", Map.of(
+                    "name", FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME,
+                    "force", Boolean.TRUE.toString(),
+                    "contextroot", FLOWLOGIX_LIVERELOAD,
+                    "additionalRepositories", "https://nexus.flowlogix.com/repository/maven-releases",
+                    DEFAULT, "%s:%s:%s"
+                            .formatted("com.flowlogix.plugins", "live-reload",
+                                    livereloadHelperVersion)), deployer::printResponse) == CommandResult.ERROR) {
+                getLog().warn("LiveReload helper deployment failed");
+            }
+        }
     }
 
     @SneakyThrows(InterruptedException.class)
@@ -142,7 +169,7 @@ public class DevModeMojo extends CommonDevMojo {
         }
         if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
                 deployer::printResponse) == CommandResult.ERROR) {
-            getLog().warn("Reload failed");
+            getLog().warn("Website Reload failed");
         }
     }
 

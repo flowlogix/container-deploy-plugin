@@ -109,7 +109,7 @@ The plugin can be configured with the following parameters:
 | `payara.keepstate`
 
 | `name`
-| Name of the application on the server. Applies only to deploy or undeploy goals. Defaults to the project's final name.
+| Name of the application on the server. Applies only to deploy, undeploy or clean goals. Defaults to the project's final name.
 | `null`
 | `name`
 |===

@@ -22,14 +22,19 @@ import com.flowlogix.maven.plugins.Deployer.ServerLocations;
 import lombok.SneakyThrows;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.util.FileUtils;
 import java.io.IOException;
+import static com.flowlogix.maven.plugins.DevModeMojo.FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME;
 
 /**
  * Goal which removes dependencies from lib/warlibs directory.
  */
 @Mojo(name = "clean", requiresProject = false, threadSafe = true)
-public class RemoveDependenciesMojo extends CommonDevMojo {
+public class CleanMojo extends CommonDevMojo {
+    @Parameter(property = "name")
+    String name;
+
     @Override
     @SneakyThrows(IOException.class)
     public void execute() throws MojoFailureException {
@@ -40,5 +45,9 @@ public class RemoveDependenciesMojo extends CommonDevMojo {
         String destination = "%s/lib/warlibs".formatted(locations.properties().instanceRoot());
         FileUtils.cleanDirectory(destination);
         getLog().info("Removed dependencies from %s - restart may be required (mvn payara:restart)".formatted(destination));
+        deployer.sendUndeployCommand(FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME, deployer::printResponse);
+        if (deployer.sendUndeployCommand(name, deployer::printResponse) != Deployer.CommandResult.SUCCESS) {
+            throw new MojoFailureException("Undeployment failed, see log for details.");
+        }
     }
 }

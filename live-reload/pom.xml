@@ -2,7 +2,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.flowlogix.plugins</groupId>
     <artifactId>live-reload</artifactId>
     <version>1.x-SNAPSHOT</version>
     <packaging>war</packaging>
@@ -39,7 +38,7 @@
             <dependency>
                 <groupId>com.flowlogix</groupId>
                 <artifactId>flowlogix-bom</artifactId>
-                <version>10.0.3</version>
+                <version>10.0.4</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
