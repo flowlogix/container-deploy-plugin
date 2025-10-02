@@ -77,7 +77,7 @@ public class DevModeMojo extends CommonDevMojo {
         }
 
         getLog().info("Starting in dev mode, starting browser, monitoring %s for changes..."
-                .formatted(srcMainDir));
+                .formatted(getSrcMainDir()));
         getLog().info("Exploded WAR directory: " + getExplodedWarDir());
 
         enableOrDeploy();
