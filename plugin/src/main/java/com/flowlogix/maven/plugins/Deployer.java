@@ -18,6 +18,9 @@
  */
 package com.flowlogix.maven.plugins;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.json.bind.annotation.JsonbProperty;
 import lombok.NonNull;
@@ -25,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.experimental.Delegate;
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -122,15 +126,30 @@ class Deployer {
         };
     }
 
-    @SneakyThrows
     @SuppressWarnings("checkstyle:MagicNumber")
     private void serverLocationsResponse(String command, CommandResponse response,
                                          AtomicReference<ServerLocations> serverLocations) {
         if (response.statusCode() != 200) {
             printResponse(command, response);
+            return;
         }
-        try (var jsonb = JsonbBuilder.create()) {
-            serverLocations.set(jsonb.fromJson(response.body(), ServerLocations.class));
+
+        String body = response.body();
+        int dataIndex = body.lastIndexOf("data:");
+        if (dataIndex != -1) {
+            body = body.substring(dataIndex + 5).trim();
+        }
+        try (var jsonb = JsonbBuilder.create();
+             JsonReader reader = Json.createReader(new StringReader(body))) {
+            JsonObject actionReport = reader.readObject().getJsonObject("action-report");
+            if (actionReport != null) {
+                serverLocations.set(jsonb.fromJson(jsonb.toJson(actionReport), ServerLocations.class));
+            } else {
+                serverLocations.set(jsonb.fromJson(response.body(), ServerLocations.class));
+            }
+        } catch (Exception e) {
+            getLog().error("Failed to parse server locations response: %s - %s"
+                    .formatted(e.getMessage(), response.body()));
         }
     }
 
