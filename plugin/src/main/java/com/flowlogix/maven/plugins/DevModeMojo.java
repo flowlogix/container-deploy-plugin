@@ -56,7 +56,7 @@ public class DevModeMojo extends CommonDevMojo {
             ".swp"
     );
 
-    @Parameter(property = "livereload-helper-version", defaultValue = "0.5")
+    @Parameter(property = "livereload-helper-version", defaultValue = "0.5.1")
     String livereloadHelperVersion;
 
     @Getter(lazy = true)
