@@ -22,17 +22,17 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.event.Shutdown;
 import jakarta.enterprise.event.Startup;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.java.Log;
 
-@Slf4j
+@Log
 @ApplicationScoped
 public class ReloadEndpointShutdown {
     void startup(@Observes Startup startup) {
-        log.debug("Starting LiveReload endpoint");
+        log.fine("Starting LiveReload endpoint");
     }
 
     void shutdown(@Observes Shutdown shutdown) {
-        log.debug("Shutting Down LiveReload endpoint");
+        log.fine("Shutting Down LiveReload endpoint");
         ReloadEndpoint.shutdown();
     }
 }

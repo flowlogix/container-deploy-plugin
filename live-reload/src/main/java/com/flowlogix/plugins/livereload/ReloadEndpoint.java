@@ -23,7 +23,7 @@ import jakarta.websocket.OnMessage;
 import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.java.Log;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-@Slf4j
+@Log
 @ServerEndpoint(value = "/livereload")
 public class ReloadEndpoint {
     private static final Map<String, Set<Session>> SESSIONS = new ConcurrentHashMap<>();
@@ -51,9 +51,9 @@ public class ReloadEndpoint {
     }
 
     public static void broadcastReload(String application) throws IOException {
-        log.debug("broadcasting reload endpoint {}", application);
+        log.fine("broadcasting reload endpoint %s".formatted(application));
         for (Session session : sessions(application)) {
-            log.debug("Reloading Web LiveReload application {} session {}", application, session.getId());
+            log.fine("Reloading Web LiveReload application %s session %s".formatted(application, session.getId()));
             session.getBasicRemote().sendText("reload");
         }
     }
