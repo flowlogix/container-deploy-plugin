@@ -53,7 +53,7 @@ public class DevModeMojo extends CommonDevMojo {
             "webapp/WEB-INF", "resources/META-INF"
     );
     private static final Set<String> IGNORED_FILE_SUFFIXES = Set.of(
-            ".swp"
+            ".swp", "~", ".tmp"
     );
 
     @Parameter(property = "livereload-helper-version", defaultValue = "0.5.1")
