@@ -82,25 +82,22 @@ class Watcher {
                     }
                 }
                 key.reset();
-                if (!modifiedFiles.isEmpty()) {
-                    delayNextChange(pendingFiles, modifiedFiles, notifyOnChangeTask, executorService, onChange, delay);
+                if (!modifiedFiles.isEmpty() && pendingFiles.addAll(modifiedFiles)) {
+                    delayNextChange(pendingFiles, notifyOnChangeTask, executorService, onChange, delay);
                 }
             }
             Thread.currentThread().interrupt();
         }
     }
 
-    private static void delayNextChange(Set<Path> pendingFiles, Set<Path> modifiedFiles,
-                                        AtomicReference<ScheduledFuture<?>> notifyOnChangeTask,
-                                        ScheduledExecutorService executorService,
-                                        Consumer<Set<Path>> onChange, int delay) {
-        pendingFiles.addAll(modifiedFiles);
+    private static void delayNextChange(Set<Path> pendingFiles, AtomicReference<ScheduledFuture<?>> notifyOnChangeTask,
+                                        ScheduledExecutorService executorService, Consumer<Set<Path>> onChange, int delay) {
         Optional.ofNullable(notifyOnChangeTask.getAndSet(executorService.schedule(() -> {
                     Set<Path> toNotify = Set.copyOf(pendingFiles);
                     pendingFiles.clear();
                     onChange.accept(toNotify);
                 }, delay, TimeUnit.MILLISECONDS)))
-                .ifPresent(f -> f.cancel(false));
+                .ifPresent(task -> task.cancel(false));
     }
 
     @SneakyThrows(IOException.class)
