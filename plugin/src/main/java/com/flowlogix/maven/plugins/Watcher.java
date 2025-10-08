@@ -18,6 +18,7 @@
  */
 package com.flowlogix.maven.plugins;
 
+import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -31,9 +32,15 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -48,12 +55,15 @@ class Watcher {
     private final CommonDevMojo mojo;
 
     @SneakyThrows({IOException.class, InterruptedException.class})
-    public void watch(Path root, @NonNull Consumer<Set<Path>> onChange) {
+    public void watch(Path root, @NonNull Consumer<Set<Path>> onChange, int delay) {
         try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
+            @Cleanup("shutdown") ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
             Map<WatchKey, Path> keys = new ConcurrentHashMap<>();
             try (var stream = Files.walk(root)) {
                 stream.filter(Files::isDirectory).forEach(path -> register(path, keys, watchService));
             }
+            Set<Path> pendingFiles = new ConcurrentSkipListSet<>();
+            AtomicReference<ScheduledFuture<?>> notifyOnChangeTask = new AtomicReference<>();
             while (!Thread.interrupted()) {
                 WatchKey key = watchService.poll(1, TimeUnit.SECONDS);
                 if (key == null) {
@@ -73,11 +83,24 @@ class Watcher {
                 }
                 key.reset();
                 if (!modifiedFiles.isEmpty()) {
-                    onChange.accept(modifiedFiles);
+                    delayNextChange(pendingFiles, modifiedFiles, notifyOnChangeTask, executorService, onChange, delay);
                 }
             }
             Thread.currentThread().interrupt();
         }
+    }
+
+    private static void delayNextChange(Set<Path> pendingFiles, Set<Path> modifiedFiles,
+                                        AtomicReference<ScheduledFuture<?>> notifyOnChangeTask,
+                                        ScheduledExecutorService executorService,
+                                        Consumer<Set<Path>> onChange, int delay) {
+        pendingFiles.addAll(modifiedFiles);
+        Optional.ofNullable(notifyOnChangeTask.getAndSet(executorService.schedule(() -> {
+                    Set<Path> toNotify = Set.copyOf(pendingFiles);
+                    pendingFiles.clear();
+                    onChange.accept(toNotify);
+                }, delay, TimeUnit.MILLISECONDS)))
+                .ifPresent(f -> f.cancel(false));
     }
 
     @SneakyThrows(IOException.class)

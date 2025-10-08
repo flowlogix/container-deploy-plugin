@@ -56,8 +56,11 @@ public class DevModeMojo extends CommonDevMojo {
             ".swp", "~", ".tmp"
     );
 
-    @Parameter(property = "livereload-helper-version", defaultValue = "0.5.1")
+    @Parameter(property = "livereload-helper-version", defaultValue = "0.5.2")
     String livereloadHelperVersion;
+
+    @Parameter(property = "watcher-delay", defaultValue = "50")
+    Integer watcherDelay;
 
     @Getter(lazy = true)
     private final Path explodedWarDir = Paths.get(project.getBuild().getDirectory(), project.getBuild().getFinalName());
@@ -81,7 +84,7 @@ public class DevModeMojo extends CommonDevMojo {
         getLog().info("Exploded WAR directory: " + getExplodedWarDir());
 
         enableOrDeploy();
-        watcher.watch(getSrcMainDir(), this::onChange);
+        watcher.watch(getSrcMainDir(), this::onChange, watcherDelay);
     }
 
     private void enableOrDeploy() throws IOException {
