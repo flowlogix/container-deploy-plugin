@@ -4,7 +4,7 @@
 
     <artifactId>container-deploy-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>1.x-SNAPSHOT</version>
+    <version>x-SNAPSHOT</version>
 
     <name>Jakarta EE Container Deploy Plugin</name>
     <description>Dev mode, and deploy utilities for Payara and GlassFish Server
@@ -13,7 +13,7 @@
     <parent>
         <groupId>com.flowlogix.plugins</groupId>
         <artifactId>container-deploy-plugin-root</artifactId>
-        <version>1.x-SNAPSHOT</version>
+        <version>x-SNAPSHOT</version>
     </parent>
 
     <properties>
