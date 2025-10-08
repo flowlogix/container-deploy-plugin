@@ -150,7 +150,7 @@ public class DevModeMojo extends CommonDevMojo {
     }
 
     private void onChange(Set<Path> modifiedFiles) {
-        getLog().debug("onChange: " + modifiedFiles.size() + " files");
+        getLog().debug("onChange: " + modifiedFiles);
         var filteredFiles = modifiedFiles.stream().filter(not(this::isIgnoredFile))
                 .collect(Collectors.toSet());
         boolean codeChanged = filteredFiles.stream().filter(this::isSourceCode).findAny()
