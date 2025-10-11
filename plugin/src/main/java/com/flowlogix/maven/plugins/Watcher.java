@@ -59,9 +59,7 @@ class Watcher {
         try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
             @Cleanup("shutdown") ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
             Map<WatchKey, Path> keys = new ConcurrentHashMap<>();
-            try (var stream = Files.walk(root)) {
-                stream.filter(Files::isDirectory).forEach(path -> register(path, keys, watchService));
-            }
+            register(root, keys, watchService);
             Set<Path> pendingFiles = new ConcurrentSkipListSet<>();
             AtomicReference<ScheduledFuture<?>> notifyOnChangeTask = new AtomicReference<>();
             while (!Thread.interrupted()) {
@@ -101,7 +99,15 @@ class Watcher {
     }
 
     @SneakyThrows(IOException.class)
-    private void register(Path path, Map<WatchKey, Path> keys, WatchService watchService) {
+    private void register(Path root, Map<WatchKey, Path> keys, WatchService watchService) {
+        try (var stream = Files.walk(root)) {
+            stream.filter(Files::isDirectory)
+                    .forEach(path -> registerFile(path, keys, watchService));
+        }
+    }
+
+    @SneakyThrows(IOException.class)
+    private void registerFile(Path path, Map<WatchKey, Path> keys, WatchService watchService) {
         getLog().debug("Registering path for watch: " + path);
         keys.put(path.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY), path);
     }
