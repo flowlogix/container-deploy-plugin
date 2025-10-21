@@ -166,7 +166,7 @@ class Deployer {
                             + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
                     .collect(Collectors.joining("&"));
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/command/%s".formatted(mojo.payaraAminURL, command)))
+                    .uri(URI.create("%s/command/%s".formatted(mojo.serverAminURL, command)))
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .header("X-requested-by", "cli")
                     .POST(HttpRequest.BodyPublishers.ofString(formData))
@@ -222,7 +222,7 @@ class Deployer {
     void printResponse(String command, CommandResponse response) {
         if (response == null) {
             getLog().warn("Failed to connect to server at %s. Is it running?"
-                    .formatted(mojo.payaraAminURL));
+                    .formatted(mojo.serverAminURL));
             return;
         }
         if (response.statusCode() != 200 && response.statusCode() != 0) {

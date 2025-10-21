@@ -11,12 +11,12 @@ To start `dev` mode, run the following command:
 
 [source,bash]
 ----
-mvn payara:dev
+mvn server:dev
 ----
 [source,bash]
 .Note: for much faster startup, use the mvnd command if you have it installed
 ----
-mvnd payara:dev
+mvnd server:dev
 ----
 
 This will:
@@ -44,14 +44,14 @@ The plugin provides live-reloading capabilities. When you make changes to your a
 
 The plugin also provides the following goals for more granular control:
 
-*   `payara:deploy`: Deploys the application to the server.
-*   `payara:undeploy`: Undeploys the application from the server.
-*   `payara:extract`: Extracts the application server distribution.
-*   `payara:start`: Starts the application server.
-*   `payara:stop`: Stops the application server.
-*   `payara:restart`: Restarts the application server.
-*   `payara:deps`: Cleans and copies project dependencies to the server's `lib/warlibs` directory.
-*   `payara:clean`: Removes all dependencies from the server's `lib/warlibs` directory.
+*   `server:deploy`: Deploys the application to the server.
+*   `server:undeploy`: Undeploys the application from the server.
+*   `server:extract`: Extracts the application server distribution.
+*   `server:start`: Starts the application server.
+*   `server:stop`: Stops the application server.
+*   `server:restart`: Restarts the application server.
+*   `server:deps`: Cleans and copies project dependencies to the server's `lib/warlibs` directory.
+*   `server:clean`: Removes all dependencies from the server's `lib/warlibs` directory.
 
 == Usage
 
@@ -78,35 +78,35 @@ The plugin can be configured with the following parameters:
 |===
 | Parameter | Description | Default Value | Property
 
-| `payaraAdminUrl`
+| `serverAdminUrl`
 | Administration URL to connect to the Server
 | `http://localhost:4848`
-| `payara.adminUrl`
+| `server.adminUrl`
 
-| `payaraHttpPort`
+| `serverHttpPort`
 | HTTP port where the application is deployed
 | `8080`
-| `payara.httpPort`
+| `server.httpPort`
 
 | `force`
 | Force deployment even if the server says the application is already deployed
 | `false`
-| `payara.force`
+| `server.force`
 
 | `warlibs`
 | Whether to include libraries from server's `lib/warlibs` directory
 | `true`
-| `payara.warlibs`
+| `server.warlibs`
 
 | `availabilityenabled`
 | Whether to enable availability on the deployed application
 | `true`
-| `payara.availabilityenabled`
+| `server.availabilityenabled`
 
 | `keepstate`
 | Whether to keep the state of the application on redeploy (secondary option to availabilityenabled)
 | `false`
-| `payara.keepstate`
+| `server.keepstate`
 
 | `name`
 | Name of the application on the server. Applies only to deploy, undeploy or clean goals. Defaults to the project's final name.

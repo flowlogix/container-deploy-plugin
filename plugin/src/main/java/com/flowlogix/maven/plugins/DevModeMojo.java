@@ -200,7 +200,7 @@ public class DevModeMojo extends CommonDevMojo {
     }
 
     private String computeBaseURL() {
-        return payaraAminURL.replaceFirst(":\\d+$", ":" + payaraHttpPort);
+        return serverAminURL.replaceFirst(":\\d+$", ":" + serverHttpPort);
     }
 
     private String computeApplicationURL() {

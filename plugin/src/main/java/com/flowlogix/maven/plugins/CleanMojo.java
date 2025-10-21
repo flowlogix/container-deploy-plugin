@@ -44,7 +44,7 @@ public class CleanMojo extends CommonDevMojo {
         }
         String destination = "%s/lib/warlibs".formatted(locations.properties().instanceRoot());
         FileUtils.cleanDirectory(destination);
-        getLog().info("Removed dependencies from %s - restart may be required (mvn payara:restart)".formatted(destination));
+        getLog().info("Removed dependencies from %s - restart may be required (mvn server:restart)".formatted(destination));
         deployer.sendUndeployCommand(FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME, deployer::printResponse);
         if (deployer.sendUndeployCommand(name, deployer::printResponse) != Deployer.CommandResult.SUCCESS) {
             throw new MojoFailureException("Undeployment failed, see log for details.");

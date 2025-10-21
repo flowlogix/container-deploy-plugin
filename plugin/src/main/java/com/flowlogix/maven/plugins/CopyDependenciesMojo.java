@@ -45,6 +45,6 @@ public class CopyDependenciesMojo extends CommonDevMojo {
         if (!copyDependencies(destination)) {
             throw new MojoFailureException("Failed to copy dependencies");
         }
-        getLog().info("Copied dependencies to %s - restart may be required (mvn payara:restart)".formatted(destination));
+        getLog().info("Copied dependencies to %s - restart may be required (mvn server:restart)".formatted(destination));
     }
 }

@@ -62,37 +62,37 @@ abstract class CommonDevMojo extends AbstractMojo {
     /**
      * Administration URL to connect to the Server
      */
-    @Parameter(defaultValue = "http://localhost:4848", property = "payara.adminUrl")
-    String payaraAminURL;
+    @Parameter(defaultValue = "http://localhost:4848", property = "server.adminUrl")
+    String serverAminURL;
 
     /**
      * HTTP port where the application is deployed
      */
-    @Parameter(defaultValue = "8080", property = "payara.httpPort")
-    String payaraHttpPort;
+    @Parameter(defaultValue = "8080", property = "server.httpPort")
+    String serverHttpPort;
 
     /**
      * Force deployment even if the server says the application is already deployed
      */
-    @Parameter(defaultValue = "false", property = "payara.force")
+    @Parameter(defaultValue = "false", property = "server.force")
     boolean force;
 
     /**
      * Whether to include libraries from server's lib/warlibs directory
      */
-    @Parameter(defaultValue = "true", property = "payara.warlibs")
+    @Parameter(defaultValue = "true", property = "server.warlibs")
     boolean warlibs;
 
     /**
      * Whether to enable availability on the deployed application
      */
-    @Parameter(defaultValue = "true", property = "payara.availabilityenabled")
+    @Parameter(defaultValue = "true", property = "server.availabilityenabled")
     boolean availabilityenabled;
 
     /**
      * Whether to keep the state of the application on redeploy (secondary option to availabilityenabled)
      */
-    @Parameter(defaultValue = "false", property = "payara.keepstate")
+    @Parameter(defaultValue = "false", property = "server.keepstate")
     boolean keepstate;
 
     final Deployer deployer = new Deployer(this);
@@ -167,7 +167,7 @@ abstract class CommonDevMojo extends AbstractMojo {
 
     boolean extractAppServer() {
         return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS, MAVEN_DEPENDENCY_PLUGIN, "unpack",
-                "unpack-payara", project, session, pluginManager, this::addSkipConfiguration);
+                "unpack-server", project, session, pluginManager, this::addSkipConfiguration);
     }
 
     boolean copyDependencies(String location) {
@@ -183,7 +183,7 @@ abstract class CommonDevMojo extends AbstractMojo {
     boolean startAppServer() {
         if (!deployer.pingServer()) {
             return callGenericMojo("org.codehaus.mojo", "exec-maven-plugin", "exec",
-                    "start-payara-domain", project, session, pluginManager, this::addSkipConfiguration);
+                    "start-domain", project, session, pluginManager, this::addSkipConfiguration);
         }
         getLog().info("Server already running");
         return false;
