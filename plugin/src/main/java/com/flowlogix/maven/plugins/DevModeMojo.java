@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
@@ -61,6 +62,9 @@ public class DevModeMojo extends CommonDevMojo {
 
     @Parameter(property = "watcher-delay", defaultValue = "50")
     Integer watcherDelay;
+
+    @Parameter(property = "additionalRepositories", defaultValue = "")
+    List<String> additionalRepositories;
 
     @Getter(lazy = true)
     private final Path explodedWarDir = Paths.get(project.getBuild().getDirectory(), project.getBuild().getFinalName());
@@ -132,7 +136,7 @@ public class DevModeMojo extends CommonDevMojo {
                     "name", FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME,
                     "force", Boolean.TRUE.toString(),
                     "contextroot", FLOWLOGIX_LIVERELOAD,
-                    "additionalRepositories", "https://nexus.flowlogix.com/repository/maven-releases",
+                    "additionalRepositories", String.join(",", additionalRepositories),
                     DEFAULT, "%s:%s:%s"
                             .formatted("com.flowlogix.plugins", "live-reload",
                                     livereloadHelperVersion)), deployer::printResponse) == CommandResult.ERROR) {
