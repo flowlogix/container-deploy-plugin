@@ -122,7 +122,7 @@ abstract class CommonDevMojo extends AbstractMojo {
                                         <id>default-cli</id>
                                         <configuration>
                                             <includeScope>runtime</includeScope>
-                                            <excludeArtifactIds>postgresql, checker-qual</excludeArtifactIds>
+                                            <excludeArtifactIds>postgresql, checker-qual, asm</excludeArtifactIds>
                                         </configuration>
                                     </execution>
                                 </executions>
