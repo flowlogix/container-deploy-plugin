@@ -18,6 +18,7 @@
  */
 package com.flowlogix.maven.plugins;
 
+import lombok.Getter;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
@@ -28,6 +29,8 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jspecify.annotations.Nullable;
 import javax.inject.Inject;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.function.Consumer;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
@@ -97,6 +100,15 @@ abstract class CommonDevMojo extends AbstractMojo {
 
     final Deployer deployer = new Deployer(this);
     final Watcher watcher = new Watcher(this);
+
+    @Getter(lazy = true)
+    private final Path explodedWarDir = Paths.get(project.getBuild().getDirectory(), project.getBuild().getFinalName());
+    @Getter(lazy = true)
+    private final Path srcMainDir = Paths.get(project.getBasedir().getAbsolutePath(), "src", "main");
+    @Getter(lazy = true)
+    private final String baseURL = computeBaseURL();
+    @Getter(lazy = true)
+    private final String appURL = computeApplicationURL();
 
     boolean callGenericMojo(String groupId, String artifactId, String goal,
                             @Nullable String execution, MavenProject project, MavenSession session,
@@ -187,5 +199,25 @@ abstract class CommonDevMojo extends AbstractMojo {
         }
         getLog().info("Server already running");
         return false;
+    }
+
+    boolean compileSources() {
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
+                "maven-compiler-plugin", "compile", null,
+                project, session, pluginManager, config -> { });
+    }
+
+    boolean explodedWar() {
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
+                "maven-war-plugin", "exploded", null,
+                project, session, pluginManager, config -> { });
+    }
+
+    private String computeBaseURL() {
+        return serverAminURL.replaceFirst(":\\d+$", ":" + serverHttpPort);
+    }
+
+    private String computeApplicationURL() {
+        return "%s/%s".formatted(getBaseURL(), project.getBuild().getFinalName());
     }
 }

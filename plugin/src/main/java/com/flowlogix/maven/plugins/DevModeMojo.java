@@ -19,7 +19,6 @@
 package com.flowlogix.maven.plugins;
 
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
-import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -28,7 +27,6 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,15 +63,6 @@ public class DevModeMojo extends CommonDevMojo {
 
     @Parameter(property = "additionalRepositories", defaultValue = "")
     List<String> additionalRepositories;
-
-    @Getter(lazy = true)
-    private final Path explodedWarDir = Paths.get(project.getBuild().getDirectory(), project.getBuild().getFinalName());
-    @Getter(lazy = true)
-    private final Path srcMainDir = Paths.get(project.getBasedir().getAbsolutePath(), "src", "main");
-    @Getter(lazy = true)
-    private final String baseURL = computeBaseURL();
-    @Getter(lazy = true)
-    private final String appURL = computeApplicationURL();
 
     @Override
     @SneakyThrows(IOException.class)
@@ -130,7 +119,7 @@ public class DevModeMojo extends CommonDevMojo {
     }
 
     private void deployLiveReloadHelper() {
-        if (!deployer.pingWebsite("%s/%s/ping".formatted(baseURL, FLOWLOGIX_LIVERELOAD))) {
+        if (!deployer.pingWebsite("%s/%s/ping".formatted(getBaseURL(), FLOWLOGIX_LIVERELOAD))) {
             getLog().info("Deploying LiveReload helper application");
             if (deployer.sendCommand("deploy-remote-archive", Map.of(
                     "name", FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME,
@@ -181,18 +170,6 @@ public class DevModeMojo extends CommonDevMojo {
         }
     }
 
-    private boolean compileSources() {
-        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
-                "maven-compiler-plugin", "compile", null,
-                project, session, pluginManager, config -> { });
-    }
-
-    private boolean explodedWar() {
-        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
-                "maven-war-plugin", "exploded", null,
-                project, session, pluginManager, config -> { });
-    }
-
     private boolean isSourceCode(Path path) {
         Path relativePath = project.getBasedir().toPath()
                 .resolve("src/main").relativize(path);
@@ -201,13 +178,5 @@ public class DevModeMojo extends CommonDevMojo {
 
     private boolean isIgnoredFile(Path path) {
         return IGNORED_FILE_SUFFIXES.stream().anyMatch(path.toString()::endsWith);
-    }
-
-    private String computeBaseURL() {
-        return serverAminURL.replaceFirst(":\\d+$", ":" + serverHttpPort);
-    }
-
-    private String computeApplicationURL() {
-        return "%s/%s".formatted(getBaseURL(), project.getBuild().getFinalName());
     }
 }
