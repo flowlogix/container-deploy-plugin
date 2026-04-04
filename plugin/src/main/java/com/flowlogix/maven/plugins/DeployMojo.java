@@ -22,12 +22,15 @@ import com.flowlogix.maven.plugins.Deployer.CommandResult;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Goal which deploys application to the server.
  * Works for both Payara and GlassFish servers.
  */
-@Mojo(name = "deploy", requiresProject = false, threadSafe = true)
+@Mojo(name = "deploy", requiresProject = false, threadSafe = true,
+        requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
+        requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class DeployMojo extends CommonDevMojo {
     @Parameter(property = "name")
     String name;
@@ -35,6 +38,7 @@ public class DeployMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
         getLog().info("Packaging application for deployment...");
+        compileSources();
         explodedWar();
         getLog().info("Application URL at " + getAppURL());
         getLog().info("Deploying application...");

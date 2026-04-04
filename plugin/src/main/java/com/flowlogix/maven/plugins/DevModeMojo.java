@@ -55,6 +55,9 @@ public class DevModeMojo extends CommonDevMojo {
             ".swp", "~", ".tmp"
     );
 
+    protected boolean openBrowser = true;
+    protected boolean deploy = true;
+
     @Parameter(property = "livereload-helper-version", defaultValue = "1.0")
     String livereloadHelperVersion;
 
@@ -72,11 +75,15 @@ public class DevModeMojo extends CommonDevMojo {
             return;
         }
 
-        getLog().info("Starting in dev mode, starting browser, monitoring %s for changes..."
-                .formatted(getSrcMainDir()));
-        getLog().info("Exploded WAR directory: " + getExplodedWarDir());
+        if (openBrowser) {
+            getLog().info("Starting in dev mode, starting browser, monitoring %s for changes..."
+                    .formatted(getSrcMainDir()));
+            getLog().info("Exploded WAR directory: " + getExplodedWarDir());
+        }
 
-        enableOrDeploy();
+        if (deploy) {
+            enableOrDeploy();
+        }
         watcher.watch(getSrcMainDir(), this::onChange, watcherDelay);
     }
 
@@ -96,11 +103,14 @@ public class DevModeMojo extends CommonDevMojo {
         }
 
         getLog().info("Application URL at " + getAppURL());
-        getLog().info("App Server at %s".formatted(deployer.serverLocations().properties().baseRoot()));
-        getLog().info("Domain at %s".formatted(deployer.serverLocations().properties().instanceRoot()));
-        getLog().info("Logging at %s/logs/server.log".formatted(deployer.serverLocations().properties().instanceRoot()));
-        getLog().info("Deps (optional) at %s/lib/warlibs/".formatted(deployer.serverLocations().properties().instanceRoot()));
-        ForkJoinPool.commonPool().execute(this::openBrowser);
+        if (openBrowser) {
+            getLog().info("App Server at %s".formatted(deployer.serverLocations().properties().baseRoot()));
+            getLog().info("Domain at %s".formatted(deployer.serverLocations().properties().instanceRoot()));
+            getLog().info("Logging at %s/logs/server.log".formatted(deployer.serverLocations().properties().instanceRoot()));
+            getLog().info("Deps (optional) at %s/lib/warlibs/".formatted(deployer.serverLocations().properties().instanceRoot()));
+            ForkJoinPool.commonPool().execute(this::openBrowser);
+        }
+
         ForkJoinPool.commonPool().execute(this::deployLiveReloadHelper);
     }
 

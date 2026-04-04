@@ -18,8 +18,6 @@
  */
 package com.flowlogix.maven.plugins;
 
-import com.flowlogix.maven.plugins.Deployer.CommandResult;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
@@ -27,22 +25,14 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  * Goal which reloads the application on the server.
  * Works for both Payara and GlassFish servers.
  */
-@Mojo(name = "reload", requiresProject = false, threadSafe = true,
+@Mojo(name = "watch", requiresProject = false, threadSafe = true,
         requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
         requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME)
-public class ReloadMojo extends CommonDevMojo {
+public class WatchMojo extends DevModeMojo {
     @Override
-    public void execute() throws MojoFailureException {
-        getLog().info("Application URL at " + getAppURL());
-        if (deployer.sendDisableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
-            throw new MojoFailureException("Application disable failed, see log for details.");
-        }
-        getLog().info("Packaging application for deployment...");
-        compileSources();
-        explodedWar();
-        if (deployer.sendEnableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
-            throw new MojoFailureException("Application enable failed, see log for details.");
-        }
-        getLog().info("Application reloaded.");
+    public void execute() {
+        openBrowser = false;
+        deploy = false;
+        super.execute();
     }
 }
