@@ -102,15 +102,10 @@ public class DevModeMojo extends CommonDevMojo {
             deployer.sendDeployCommand(deployer::printResponse, null, 0);
         }
 
-        getLog().info("Application URL at " + getAppURL());
+        displayInfo();
         if (openBrowser) {
-            getLog().info("App Server at %s".formatted(deployer.serverLocations().properties().baseRoot()));
-            getLog().info("Domain at %s".formatted(deployer.serverLocations().properties().instanceRoot()));
-            getLog().info("Logging at %s/logs/server.log".formatted(deployer.serverLocations().properties().instanceRoot()));
-            getLog().info("Deps (optional) at %s/lib/warlibs/".formatted(deployer.serverLocations().properties().instanceRoot()));
             ForkJoinPool.commonPool().execute(this::openBrowser);
         }
-
         ForkJoinPool.commonPool().execute(this::deployLiveReloadHelper);
     }
 
@@ -125,6 +120,16 @@ public class DevModeMojo extends CommonDevMojo {
             }
         } else {
             getLog().warn("Website not available after 30 seconds.");
+        }
+    }
+
+    protected void displayInfo() {
+        getLog().info("Application URL at " + getAppURL());
+        if (openBrowser) {
+            getLog().info("App Server at %s".formatted(deployer.serverLocations().properties().baseRoot()));
+            getLog().info("Domain at %s".formatted(deployer.serverLocations().properties().instanceRoot()));
+            getLog().info("Logging at %s/logs/server.log".formatted(deployer.serverLocations().properties().instanceRoot()));
+            getLog().info("Deps (optional) at %s/lib/warlibs/".formatted(deployer.serverLocations().properties().instanceRoot()));
         }
     }
 
