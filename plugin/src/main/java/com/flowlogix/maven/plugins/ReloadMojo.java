@@ -43,6 +43,10 @@ public class ReloadMojo extends CommonDevMojo {
         if (deployer.sendEnableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
             throw new MojoFailureException("Application enable failed, see log for details.");
         }
+        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+                deployer::printResponse) == CommandResult.ERROR) {
+            getLog().warn("Website Reload failed");
+        }
         getLog().info("Application reloaded.");
     }
 }
