@@ -14,7 +14,7 @@
     <parent>
         <groupId>com.flowlogix</groupId>
         <artifactId>infra-pom</artifactId>
-        <version>126</version>
+        <version>127</version>
     </parent>
 
     <modules>
