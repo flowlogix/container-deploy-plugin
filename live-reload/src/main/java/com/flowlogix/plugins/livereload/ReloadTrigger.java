@@ -18,6 +18,8 @@
  */
 package com.flowlogix.plugins.livereload;
 
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -29,16 +31,10 @@ import java.io.IOException;
 public class ReloadTrigger {
     @POST
     @Path("/reload/{application}")
-    public Response reload(@PathParam("application") String application) throws IOException {
-        ReloadEndpoint.broadcastReload(application);
-        return Response.ok().build();
-    }
-
-    @POST
-    @Path("/reload/error/{application}")
-    public Response error(@PathParam("application") String application) throws IOException {
-        ReloadEndpoint.broadcastError(application);
-        return Response.ok().build();
+    public Response reload(@PathParam("application") String application,
+                           @FormParam("isError") @DefaultValue("false") boolean isError) throws IOException {
+        ReloadEndpoint.broadcastReload(application, isError);
+        return Response.ok().entity(isError).build();
     }
 
     @GET

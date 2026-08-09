@@ -170,15 +170,7 @@ public class DevModeMojo extends CommonDevMojo {
             return;
         }
         explodedWar();
-        if (codeChanged) {
-            if (!compilationSucceeded) {
-                getLog().warn("Compilation failed, sending error command for " + project.getBuild().getFinalName());
-                if (deployer.sendErrorCommand(getBaseURL(), project.getBuild().getFinalName(),
-                        deployer::printResponse) == CommandResult.ERROR) {
-                    getLog().warn("Website Error Handler failed");
-                }
-                return;
-            }
+        if (codeChanged && compilationSucceeded) {
             getLog().info("Reloading " + project.getBuild().getFinalName());
             if (deployer.sendDisableCommand(deployer::printResponse) == CommandResult.ERROR) {
                 deployer.sendDeployCommand(deployer::printResponse, null, 0);
@@ -186,7 +178,8 @@ public class DevModeMojo extends CommonDevMojo {
                 deployer.sendEnableCommand(deployer::printResponse);
             }
         }
-        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+        if (deployer.sendReloadCommand(getBaseURL(), codeChanged && !compilationSucceeded,
+                project.getBuild().getFinalName(),
                 deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Website Reload failed");
         }

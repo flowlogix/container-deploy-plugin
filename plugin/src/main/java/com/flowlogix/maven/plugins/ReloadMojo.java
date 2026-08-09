@@ -38,12 +38,12 @@ public class ReloadMojo extends CommonDevMojo {
             throw new MojoFailureException("Application disable failed, see log for details.");
         }
         getLog().info("Packaging application for deployment...");
-        compileSources();
+        boolean compilationSucceeded = compileSources();
         explodedWar();
         if (deployer.sendEnableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
             throw new MojoFailureException("Application enable failed, see log for details.");
         }
-        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+        if (deployer.sendReloadCommand(getBaseURL(), !compilationSucceeded, project.getBuild().getFinalName(),
                 deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Website Reload failed");
         }

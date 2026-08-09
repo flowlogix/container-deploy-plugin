@@ -18,6 +18,7 @@
  */
 package com.flowlogix.maven.plugins;
 
+import com.google.common.net.MediaType;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
@@ -200,14 +201,15 @@ class Deployer {
 
     @SuppressWarnings("checkstyle:MagicNumber")
     @SneakyThrows({IOException.class, InterruptedException.class})
-    public CommandResult sendReloadCommand(String baseURL, String applicationName,
+    public CommandResult sendReloadCommand(String baseURL, boolean isError, String applicationName,
                                            @NonNull BiConsumer<String, CommandResponse> responseCallback) {
         HttpResponse<Void> response;
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("%s/%s/reload/%s".formatted(baseURL, FLOWLOGIX_LIVERELOAD, applicationName)))
-                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .header("Content-Type", MediaType.FORM_DATA.type())
+                    .POST(HttpRequest.BodyPublishers.ofString("isError=%b".formatted(isError)))
                     .build();
             response = client.send(request, HttpResponse.BodyHandlers.discarding());
         } catch (ConnectException e) {
@@ -215,26 +217,6 @@ class Deployer {
             return CommandResult.NO_CONNECTION;
         }
         responseCallback.accept("reload", new CommandResponse(response.statusCode(), null));
-        return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
-    }
-
-    @SuppressWarnings("checkstyle:MagicNumber")
-    @SneakyThrows({IOException.class, InterruptedException.class})
-    public CommandResult sendErrorCommand(String baseURL, String applicationName,
-                                          @NonNull BiConsumer<String, CommandResponse> responseCallback) {
-        HttpResponse<Void> response;
-        try {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/%s/reload/error/%s".formatted(baseURL, FLOWLOGIX_LIVERELOAD, applicationName)))
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .build();
-            response = client.send(request, HttpResponse.BodyHandlers.discarding());
-        } catch (ConnectException e) {
-            responseCallback.accept("error", null);
-            return CommandResult.NO_CONNECTION;
-        }
-        responseCallback.accept("error", new CommandResponse(response.statusCode(), null));
         return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
     }
 

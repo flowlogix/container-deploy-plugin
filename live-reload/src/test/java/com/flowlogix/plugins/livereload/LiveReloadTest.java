@@ -32,6 +32,7 @@ import org.mockito.MockedStatic;
 import java.io.IOException;
 import java.util.Set;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,9 +52,9 @@ class LiveReloadTest {
     void broadcastReloadDoesNotFailWhenNoSessions() throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of());
-            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any())).thenCallRealMethod();
+            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), anyBoolean())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcastReload("myapp");
+            ReloadEndpoint.broadcastReload("myapp", false);
             verifyNoMoreInteractions(mockSessions);
         }
     }
@@ -63,9 +64,9 @@ class LiveReloadTest {
     void broadcastReloadDoesNotFailWhenOneSession() throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
-            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any())).thenCallRealMethod();
+            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), anyBoolean())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcastReload("myapp");
+            ReloadEndpoint.broadcastReload("myapp", false);
             verify(session).getId();
             verify(session.getBasicRemote()).sendText("reload");
             verify(session, times(2)).getBasicRemote();
@@ -87,11 +88,20 @@ class LiveReloadTest {
                 responseMock.when(Response::ok).thenReturn(responseBuilder);
                 when(responseBuilder.build()).thenReturn(response);
                 when(response.getStatus()).thenReturn(Response.Status.OK.getStatusCode());
+                when(responseBuilder.entity(anyBoolean())).thenAnswer(invocation -> {
+                    boolean isError = invocation.getArgument(0);
+                    when(response.readEntity(Boolean.class)).thenReturn(isError);
+                    return responseBuilder;
+                });
 
                 ReloadTrigger trigger = new ReloadTrigger();
-                Response actualResponse = trigger.reload("abc");
-
+                Response actualResponse = trigger.reload("abc", false);
                 assertThat(actualResponse.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
+                assertThat(actualResponse.readEntity(Boolean.class)).isFalse();
+
+                Response actualErrorResponse = trigger.reload("def", true);
+                assertThat(actualErrorResponse.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
+                assertThat(actualErrorResponse.readEntity(Boolean.class)).isTrue();
             }
         }
     }
