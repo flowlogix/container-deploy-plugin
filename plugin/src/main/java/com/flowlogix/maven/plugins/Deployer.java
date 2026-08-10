@@ -18,7 +18,6 @@
  */
 package com.flowlogix.maven.plugins;
 
-import com.google.common.net.MediaType;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
@@ -208,7 +207,7 @@ class Deployer {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("%s/%s/reload/%s".formatted(baseURL, FLOWLOGIX_LIVERELOAD, applicationName)))
-                    .header("Content-Type", MediaType.FORM_DATA.type())
+                    .header("Content-Type", "application/x-www-form-urlencoded")
                     .POST(HttpRequest.BodyPublishers.ofString("isError=%b".formatted(isError)))
                     .build();
             response = client.send(request, HttpResponse.BodyHandlers.discarding());

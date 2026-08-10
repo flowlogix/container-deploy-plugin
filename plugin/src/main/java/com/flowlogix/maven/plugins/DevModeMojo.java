@@ -58,7 +58,7 @@ public class DevModeMojo extends CommonDevMojo {
     protected boolean openBrowser = true;
     protected boolean deploy = true;
 
-    @Parameter(property = "livereload-helper-version", defaultValue = "1.0")
+    @Parameter(property = "livereload-helper-version", defaultValue = "1.4")
     String livereloadHelperVersion;
 
     @Parameter(property = "watcher-delay", defaultValue = "50")
@@ -169,16 +169,15 @@ public class DevModeMojo extends CommonDevMojo {
         if (filteredFiles.isEmpty()) {
             return;
         }
-        explodedWar();
+        boolean isDeployError = !explodedWar();
         if (codeChanged && compilationSucceeded) {
             getLog().info("Reloading " + project.getBuild().getFinalName());
-            if (deployer.sendDisableCommand(deployer::printResponse) == CommandResult.ERROR) {
-                deployer.sendDeployCommand(deployer::printResponse, null, 0);
-            } else {
-                deployer.sendEnableCommand(deployer::printResponse);
-            }
+            deployer.sendDisableCommand(deployer::printResponse);
+            isDeployError = deployer.sendEnableCommand(deployer::printResponse) == CommandResult.ERROR;
+            isDeployError = isDeployError && deployer.sendDeployCommand(deployer::printResponse,
+                        null, 0) == CommandResult.ERROR;
         }
-        if (deployer.sendReloadCommand(getBaseURL(), codeChanged && !compilationSucceeded,
+        if (deployer.sendReloadCommand(getBaseURL(), codeChanged && !compilationSucceeded || isDeployError,
                 project.getBuild().getFinalName(),
                 deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Website Reload failed");

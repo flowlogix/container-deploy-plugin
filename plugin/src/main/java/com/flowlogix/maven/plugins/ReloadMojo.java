@@ -34,18 +34,27 @@ public class ReloadMojo extends CommonDevMojo {
     @Override
     public void execute() throws MojoFailureException {
         getLog().info("Application URL at " + getAppURL());
-        if (deployer.sendDisableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
-            throw new MojoFailureException("Application disable failed, see log for details.");
+        boolean isDeployError = deployer.sendDisableCommand(deployer::printResponse) != CommandResult.SUCCESS;
+        boolean compilationSucceeded = false;
+        String failureMessage = null;
+        if (isDeployError) {
+            failureMessage = "Application disable failed, see log for details.";
+        } else {
+            getLog().info("Packaging application for deployment...");
+            compilationSucceeded = compileSources();
+            isDeployError = !explodedWar();
+            if (deployer.sendEnableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
+                isDeployError = true;
+                failureMessage = "Application enable failed, see log for details.";
+            }
         }
-        getLog().info("Packaging application for deployment...");
-        boolean compilationSucceeded = compileSources();
-        explodedWar();
-        if (deployer.sendEnableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
-            throw new MojoFailureException("Application enable failed, see log for details.");
-        }
-        if (deployer.sendReloadCommand(getBaseURL(), !compilationSucceeded, project.getBuild().getFinalName(),
+        if (deployer.sendReloadCommand(getBaseURL(), !compilationSucceeded || isDeployError,
+                project.getBuild().getFinalName(),
                 deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Website Reload failed");
+        }
+        if (isDeployError) {
+            throw new MojoFailureException(failureMessage);
         }
         getLog().info("Application reloaded.");
     }
