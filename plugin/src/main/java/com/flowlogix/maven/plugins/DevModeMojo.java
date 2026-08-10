@@ -172,7 +172,9 @@ public class DevModeMojo extends CommonDevMojo {
         boolean isDeployError = !explodedWar();
         if (codeChanged && compilationSucceeded) {
             getLog().info("Reloading " + project.getBuild().getFinalName());
-            deployer.sendDisableCommand(deployer::printResponse);
+            if (deployer.sendDisableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
+                getLog().info("Sending enable or deploy command ...");
+            }
             isDeployError = deployer.sendEnableCommand(deployer::printResponse) == CommandResult.ERROR;
             isDeployError = isDeployError && deployer.sendDeployCommand(deployer::printResponse,
                         null, 0) == CommandResult.ERROR;
