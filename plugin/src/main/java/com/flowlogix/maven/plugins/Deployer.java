@@ -58,6 +58,22 @@ class Deployer {
     enum CommandResult {
         NO_CONNECTION, ERROR, SUCCESS
     }
+
+    enum ReloadStatus {
+        RELOAD("reload"),
+        ERROR("error"),
+        TEST_FAILURE("test-failure");
+
+        private final String description;
+
+        ReloadStatus(String description) {
+            this.description = description;
+        }
+
+        String getDescription() {
+            return description;
+        }
+    }
     record CommandResponse(int statusCode, String body) { }
     public record ServerLocations(
             String message,
@@ -200,13 +216,14 @@ class Deployer {
 
     @SuppressWarnings("checkstyle:MagicNumber")
     @SneakyThrows({IOException.class, InterruptedException.class})
-    public CommandResult sendReloadCommand(String baseURL, String applicationName,
-                                           @NonNull BiConsumer<String, CommandResponse> responseCallback) {
+    public CommandResult sendReloadCommand(String baseURL, String applicationName, ReloadStatus status,
+            @NonNull BiConsumer<String, CommandResponse> responseCallback) {
         HttpResponse<Void> response;
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/%s/reload/%s".formatted(baseURL, FLOWLOGIX_LIVERELOAD, applicationName)))
+                    .uri(URI.create("%s/%s/reload/%s?status=%s".formatted(baseURL,
+                            FLOWLOGIX_LIVERELOAD, applicationName, status.getDescription())))
                     .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
             response = client.send(request, HttpResponse.BodyHandlers.discarding());
@@ -215,26 +232,6 @@ class Deployer {
             return CommandResult.NO_CONNECTION;
         }
         responseCallback.accept("reload", new CommandResponse(response.statusCode(), null));
-        return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
-    }
-
-    @SuppressWarnings("checkstyle:MagicNumber")
-    @SneakyThrows({IOException.class, InterruptedException.class})
-    public CommandResult sendErrorCommand(String baseURL, String applicationName,
-                                          @NonNull BiConsumer<String, CommandResponse> responseCallback) {
-        HttpResponse<Void> response;
-        try {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/%s/reload/error/%s".formatted(baseURL, FLOWLOGIX_LIVERELOAD, applicationName)))
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .build();
-            response = client.send(request, HttpResponse.BodyHandlers.discarding());
-        } catch (ConnectException e) {
-            responseCallback.accept("error", null);
-            return CommandResult.NO_CONNECTION;
-        }
-        responseCallback.accept("error", new CommandResponse(response.statusCode(), null));
         return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
     }
 

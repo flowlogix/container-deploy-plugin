@@ -19,6 +19,7 @@
 package com.flowlogix.maven.plugins;
 
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
+import com.flowlogix.maven.plugins.Deployer.ReloadStatus;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
@@ -43,7 +44,7 @@ public class ReloadMojo extends CommonDevMojo {
         if (deployer.sendEnableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
             throw new MojoFailureException("Application enable failed, see log for details.");
         }
-        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(), ReloadStatus.RELOAD,
                 deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Website Reload failed");
         }

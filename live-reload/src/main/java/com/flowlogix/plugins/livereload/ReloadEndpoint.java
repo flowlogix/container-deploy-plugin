@@ -50,21 +50,17 @@ public class ReloadEndpoint {
                 .forEach(SESSIONS::remove);
     }
 
-    public static void broadcastReload(String application) throws IOException {
-        log.fine("broadcasting reload endpoint %s".formatted(application));
+    public static void broadcast(String application, ReloadStatus status) throws IOException {
+        log.fine("broadcasting %s endpoint %s".formatted(status.getDescription(), application));
         for (Session session : sessions(application)) {
-            log.fine("Reloading Web LiveReload application %s session %s".formatted(application, session.getId()));
-            session.getBasicRemote().sendText("reload");
+            log.fine("Sending %s to Web LiveReload application %s session %s".formatted(
+                    status.getDescription(), application, session.getId()));
+            session.getBasicRemote().sendText(status.getDescription());
         }
     }
 
-    public static void broadcastError(String application) throws IOException {
-        log.fine("broadcasting error endpoint %s".formatted(application));
-        for (Session session : sessions(application)) {
-            log.fine(("Handling error for Web LiveReload application "
-                    + "%s session %s").formatted(application, session.getId()));
-            session.getBasicRemote().sendText("error");
-        }
+    public static void broadcastReload(String application) throws IOException {
+        broadcast(application, ReloadStatus.RELOAD);
     }
 
     static Set<Session> sessions(String application) {

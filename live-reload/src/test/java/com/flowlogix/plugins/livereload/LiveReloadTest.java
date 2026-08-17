@@ -24,6 +24,8 @@ import jakarta.ws.rs.core.Response.ResponseBuilder;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,30 +48,45 @@ class LiveReloadTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     Session session;
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(ReloadStatus.class)
     @SuppressWarnings("checkstyle:MagicNumber")
-    void broadcastReloadDoesNotFailWhenNoSessions() throws IOException {
+    void broadcastDoesNotFailWhenNoSessions(ReloadStatus status) throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of());
-            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any())).thenCallRealMethod();
+            reloadMock.when(() -> ReloadEndpoint.broadcast(any(), any())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcastReload("myapp");
+            ReloadEndpoint.broadcast("myapp", status);
             verifyNoMoreInteractions(mockSessions);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(ReloadStatus.class)
+    @SuppressWarnings("checkstyle:MagicNumber")
+    void broadcastDoesNotFailWhenOneSession(ReloadStatus status) throws IOException {
+        try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
+            reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
+            reloadMock.when(() -> ReloadEndpoint.broadcast(any(), any())).thenCallRealMethod();
+
+            ReloadEndpoint.broadcast("myapp", status);
+            verify(session).getId();
+            verify(session.getBasicRemote()).sendText(status.getDescription());
+            verify(session, times(2)).getBasicRemote();
+            verifyNoMoreInteractions(mockSessions, session);
         }
     }
 
     @Test
     @SuppressWarnings("checkstyle:MagicNumber")
-    void broadcastReloadDoesNotFailWhenOneSession() throws IOException {
+    void broadcastReloadDelegatesToReloadStatusReload() throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
+            reloadMock.when(() -> ReloadEndpoint.broadcast(any(), any())).thenCallRealMethod();
             reloadMock.when(() -> ReloadEndpoint.broadcastReload(any())).thenCallRealMethod();
 
             ReloadEndpoint.broadcastReload("myapp");
-            verify(session).getId();
-            verify(session.getBasicRemote()).sendText("reload");
-            verify(session, times(2)).getBasicRemote();
-            verifyNoMoreInteractions(mockSessions, session);
+            verify(session.getBasicRemote()).sendText(ReloadStatus.RELOAD.getDescription());
         }
     }
 
@@ -80,8 +97,9 @@ class LiveReloadTest {
         @Mock
         ResponseBuilder responseBuilder;
 
-        @Test
-        void reloadReturnsOkWhenBroadcastSucceeds() throws Exception {
+        @ParameterizedTest
+        @EnumSource(ReloadStatus.class)
+        void reloadReturnsOkWhenBroadcastSucceeds(ReloadStatus status) throws Exception {
             try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class);
                  MockedStatic<Response> responseMock = mockStatic(Response.class)) {
                 responseMock.when(Response::ok).thenReturn(responseBuilder);
@@ -89,9 +107,10 @@ class LiveReloadTest {
                 when(response.getStatus()).thenReturn(Response.Status.OK.getStatusCode());
 
                 ReloadTrigger trigger = new ReloadTrigger();
-                Response actualResponse = trigger.reload("abc");
+                Response actualResponse = trigger.reload("abc", status.getDescription());
 
                 assertThat(actualResponse.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
+                reloadMock.verify(() -> ReloadEndpoint.broadcast("abc", status));
             }
         }
     }

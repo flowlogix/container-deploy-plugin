@@ -19,6 +19,7 @@
 package com.flowlogix.maven.plugins;
 
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
+import com.flowlogix.maven.plugins.Deployer.ReloadStatus;
 import lombok.SneakyThrows;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -173,7 +174,7 @@ public class DevModeMojo extends CommonDevMojo {
         if (codeChanged) {
             if (!compilationSucceeded) {
                 getLog().warn("Compilation failed, sending error command for " + project.getBuild().getFinalName());
-                if (deployer.sendErrorCommand(getBaseURL(), project.getBuild().getFinalName(),
+                if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(), ReloadStatus.ERROR,
                         deployer::printResponse) == CommandResult.ERROR) {
                     getLog().warn("Website Error Handler failed");
                 }
@@ -186,7 +187,7 @@ public class DevModeMojo extends CommonDevMojo {
                 deployer.sendEnableCommand(deployer::printResponse);
             }
         }
-        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(), ReloadStatus.RELOAD,
                 deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Website Reload failed");
         }

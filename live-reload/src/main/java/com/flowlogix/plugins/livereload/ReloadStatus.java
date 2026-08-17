@@ -18,28 +18,27 @@
  */
 package com.flowlogix.plugins.livereload;
 
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Response;
-import java.io.IOException;
+import java.util.Arrays;
 
-@Path("/")
-public class ReloadTrigger {
-    @POST
-    @Path("/reload/{application}")
-    public Response reload(@PathParam("application") String application,
-                           @QueryParam("status") @DefaultValue("reload") String status) throws IOException {
-        ReloadEndpoint.broadcast(application, ReloadStatus.fromValue(status));
-        return Response.ok().build();
+enum ReloadStatus {
+    RELOAD("reload"),
+    ERROR("error"),
+    TEST_FAILURE("test-failure");
+
+    private final String description;
+
+    ReloadStatus(String description) {
+        this.description = description;
     }
 
-    @GET
-    @Path("/ping")
-    public Response ping() {
-        return Response.ok("pong").build();
+    String getDescription() {
+        return description;
+    }
+
+    static ReloadStatus fromValue(String value) {
+        return Arrays.stream(values())
+                .filter(status -> status.description.equals(value))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown reload status: " + value));
     }
 }
