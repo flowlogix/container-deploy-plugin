@@ -9,8 +9,5 @@
         <version>x-SNAPSHOT</version>
     </parent>
 
-    <artifactId>common</artifactId>
-    <properties>
-        <maven.deploy.skip>true</maven.deploy.skip>
-    </properties>
+    <artifactId>container-deploy-plugin-common</artifactId>
 </project>
