@@ -28,6 +28,7 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +45,7 @@ import static java.util.function.Predicate.not;
  * Works for both Payara and GlassFish servers.
  */
 @Mojo(name = "dev", requiresProject = false, threadSafe = true,
-        requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
+        requiresDependencyResolution = ResolutionScope.TEST,
         requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class DevModeMojo extends CommonDevMojo {
     static final String FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME = "flowlogix-livereload-helper";
@@ -67,6 +68,12 @@ public class DevModeMojo extends CommonDevMojo {
 
     @Parameter(property = "additionalRepositories", defaultValue = "")
     List<String> additionalRepositories;
+
+    @Parameter(property = "test-failure-max-retransmit", defaultValue = "50")
+    Integer testFailureMaxRetransmit;
+
+    @Parameter(property = "test-failure-retransmit-delay", defaultValue = "100")
+    Integer testFailureRetransmitDelay;
 
     @Override
     @SneakyThrows(IOException.class)
@@ -188,6 +195,7 @@ public class DevModeMojo extends CommonDevMojo {
         return isDeployError;
     }
 
+    @SneakyThrows(InterruptedException.class)
     private void reloadAndTest(boolean codeChanged, boolean compilationSucceeded, boolean isDeployError) {
         if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
                 codeChanged && !compilationSucceeded || isDeployError ? ReloadStatus.ERROR : ReloadStatus.RELOAD,
@@ -195,8 +203,17 @@ public class DevModeMojo extends CommonDevMojo {
             getLog().warn("Website Reload failed");
         } else if (compilationSucceeded) {
             if (!runTests()) {
-                deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
-                        ReloadStatus.TEST_FAILURE, deployer::printResponse);
+                CommandResult result = CommandResult.ERROR;
+                for (int ii = 0; ii < testFailureMaxRetransmit && result != CommandResult.SUCCESS; ++ii) {
+                    result = deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+                            ReloadStatus.TEST_FAILURE, deployer::printResponse);
+                    if (result == CommandResult.NO_CONNECTION) {
+                        break;
+                    }
+                    if (result == CommandResult.ERROR) {
+                        Thread.sleep(Duration.ofMillis(testFailureRetransmitDelay).toMillis());
+                    }
+                }
             }
         }
     }

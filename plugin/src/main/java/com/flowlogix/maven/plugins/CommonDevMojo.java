@@ -24,6 +24,10 @@ import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.BuildPluginManager;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.PluginDescriptorParsingException;
+import org.apache.maven.plugin.PluginNotFoundException;
+import org.apache.maven.plugin.PluginResolutionException;
+import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
@@ -31,7 +35,10 @@ import org.jspecify.annotations.Nullable;
 import javax.inject.Inject;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
@@ -150,6 +157,9 @@ abstract class CommonDevMojo extends AbstractMojo {
             }
             if (configuration == null) {
                 configuration = configuration();
+            } else {
+                // detach from the Model
+                configuration = new Xpp3Dom(configuration);
             }
             configurator.accept(configuration);
             executeMojo(
@@ -214,9 +224,54 @@ abstract class CommonDevMojo extends AbstractMojo {
     }
 
     boolean runTests() {
-        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
-                "maven-surefire-plugin", "test", null,
-                project, session, pluginManager, config -> { });
+        if (callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
+                "maven-compiler-plugin", "testCompile", null,
+                project, session, pluginManager, config -> { })) {
+            resetSurefireContext();
+            return withDependencyProperties(() -> callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
+                    "maven-surefire-plugin", "test", null,
+                    project, session, pluginManager, config -> { }));
+        }
+        return false;
+    }
+
+    private <T> T withDependencyProperties(Supplier<T> action) {
+        var props = project.getProperties();
+        var saved = new HashMap<String, String>();
+        var added = new ArrayList<String>();
+        project.getArtifacts().stream()
+                .filter(artifact -> artifact.getFile() != null)
+                .forEach(artifact -> {
+                    var key = artifact.getDependencyConflictId();
+                    var prior = props.getProperty(key);
+                    if (prior != null) {
+                        saved.put(key, prior);
+                    } else {
+                        added.add(key);
+                    }
+                    props.setProperty(key, artifact.getFile().getAbsolutePath());
+                });
+        try {
+            return action.get();
+        } finally {
+            added.forEach(props::remove);
+            saved.forEach(props::setProperty);
+        }
+    }
+
+    private void resetSurefireContext() {
+        try {
+            var surefire = project.getPlugin("%s:maven-surefire-plugin".formatted(ORG_APACHE_MAVEN_PLUGINS));
+            if (surefire == null) {
+                return;
+            }
+            PluginDescriptor descriptor = pluginManager.loadPlugin(surefire,
+                    project.getRemotePluginRepositories(), session.getRepositorySession());
+            session.getPluginContext(descriptor, project).clear();
+        } catch (PluginResolutionException | PluginDescriptorParsingException
+                 | PluginNotFoundException | org.apache.maven.plugin.InvalidPluginDescriptorException e) {
+            getLog().warn("Could not reset surefire plugin context", e);
+        }
     }
 
     private String computeBaseURL() {

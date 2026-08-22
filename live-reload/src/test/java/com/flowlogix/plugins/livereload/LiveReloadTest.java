@@ -106,6 +106,7 @@ class LiveReloadTest {
             try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class);
                  MockedStatic<Response> responseMock = mockStatic(Response.class)) {
                 responseMock.when(Response::ok).thenReturn(responseBuilder);
+                responseMock.when(() -> Response.status(Response.Status.EXPECTATION_FAILED)).thenReturn(responseBuilder);
                 when(responseBuilder.build()).thenReturn(response);
                 when(response.getStatus()).thenReturn(Response.Status.OK.getStatusCode());
 

@@ -26,7 +26,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  * Works for both Payara and GlassFish servers.
  */
 @Mojo(name = "watch", requiresProject = false, threadSafe = true,
-        requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME,
+        requiresDependencyResolution = ResolutionScope.TEST,
         requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class WatchMojo extends DevModeMojo {
     @Override
