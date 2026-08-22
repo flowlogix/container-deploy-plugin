@@ -18,6 +18,7 @@
  */
 package com.flowlogix.maven.plugins;
 
+import com.flowlogix.plugins.common.ReloadStatus;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
@@ -59,22 +60,8 @@ class Deployer {
         NO_CONNECTION, ERROR, SUCCESS
     }
 
-    enum ReloadStatus {
-        RELOAD("reload"),
-        ERROR("error"),
-        TEST_FAILURE("test-failure");
-
-        private final String description;
-
-        ReloadStatus(String description) {
-            this.description = description;
-        }
-
-        String getDescription() {
-            return description;
-        }
-    }
     record CommandResponse(int statusCode, String body) { }
+
     public record ServerLocations(
             String message,
             String command,

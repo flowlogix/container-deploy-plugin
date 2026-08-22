@@ -16,18 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.flowlogix.plugins.livereload;
+package com.flowlogix.plugins.common;
 
-enum ReloadStatus {
+public enum ReloadStatus {
+    /** Indicates that the application has been reloaded successfully and the browser should refresh the page. */
     RELOAD,
+    /** Indicates that a compilation or deployment error has occurred and the browser should not refresh the page. */
     ERROR,
+    /** Indicates that test failures have occurred and the browser should not refresh the page. */
     TEST_FAILURE;
 
-    String getDescription() {
+    public String getDescription() {
         return name().toLowerCase().replace("_", "-");
     }
 
-    static ReloadStatus fromDescription(String description) {
+    public static ReloadStatus fromDescription(String description) {
         return Enum.valueOf(ReloadStatus.class, description.toUpperCase().replace("-", "_"));
     }
 }

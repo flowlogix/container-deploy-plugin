@@ -19,7 +19,7 @@
 package com.flowlogix.maven.plugins;
 
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
-import com.flowlogix.maven.plugins.Deployer.ReloadStatus;
+import com.flowlogix.plugins.common.ReloadStatus;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;

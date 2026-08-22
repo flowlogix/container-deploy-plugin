@@ -18,6 +18,7 @@
  */
 package com.flowlogix.plugins.livereload;
 
+import com.flowlogix.plugins.common.ReloadStatus;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;

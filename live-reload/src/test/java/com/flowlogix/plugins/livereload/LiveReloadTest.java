@@ -18,6 +18,7 @@
  */
 package com.flowlogix.plugins.livereload;
 
+import com.flowlogix.plugins.common.ReloadStatus;
 import jakarta.websocket.Session;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;

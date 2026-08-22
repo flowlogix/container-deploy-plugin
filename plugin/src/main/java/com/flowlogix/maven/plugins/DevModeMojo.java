@@ -19,7 +19,7 @@
 package com.flowlogix.maven.plugins;
 
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
-import com.flowlogix.maven.plugins.Deployer.ReloadStatus;
+import com.flowlogix.plugins.common.ReloadStatus;
 import lombok.SneakyThrows;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
