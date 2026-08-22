@@ -41,15 +41,15 @@ import static org.twdata.maven.mojoexecutor.MojoExecutor.groupId;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
 
 /**
- * Common parameters and code for dev and redeploy mojos
+ * Common parameters and code for dev and redeploy mojos.
  */
 abstract class CommonDevMojo extends AbstractMojo {
     /**
-     * Group ID of Apache Maven Plugins
+     * Group ID of Apache Maven Plugins.
      */
     public static final String ORG_APACHE_MAVEN_PLUGINS = "org.apache.maven.plugins";
     /**
-     * Artifact ID of Maven Dependency Plugin
+     * Artifact ID of Maven Dependency Plugin.
      */
     public static final String MAVEN_DEPENDENCY_PLUGIN = "maven-dependency-plugin";
 
@@ -63,37 +63,37 @@ abstract class CommonDevMojo extends AbstractMojo {
     BuildPluginManager pluginManager;
 
     /**
-     * Administration URL to connect to the Server
+     * Administration URL to connect to the Server.
      */
     @Parameter(defaultValue = "http://localhost:4848", property = "server.adminUrl")
     String serverAminURL;
 
     /**
-     * HTTP port where the application is deployed
+     * HTTP port where the application is deployed.
      */
     @Parameter(defaultValue = "8080", property = "server.httpPort")
     String serverHttpPort;
 
     /**
-     * Force deployment even if the server says the application is already deployed
+     * Force deployment even if the server says the application is already deployed.
      */
     @Parameter(defaultValue = "false", property = "server.force")
     boolean force;
 
     /**
-     * Whether to include libraries from server's lib/warlibs directory
+     * Whether to include libraries from server's lib/warlibs directory.
      */
     @Parameter(defaultValue = "true", property = "server.warlibs")
     boolean warlibs;
 
     /**
-     * Whether to enable availability on the deployed application
+     * Whether to enable availability on the deployed application.
      */
     @Parameter(defaultValue = "true", property = "server.availabilityenabled")
     boolean availabilityenabled;
 
     /**
-     * Whether to keep the state of the application on redeploy (secondary option to availabilityenabled)
+     * Whether to keep the state of the application on redeploy (secondary option to availabilityenabled).
      */
     @Parameter(defaultValue = "false", property = "server.keepstate")
     boolean keepstate;

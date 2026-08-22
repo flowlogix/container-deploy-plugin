@@ -14,7 +14,7 @@
     <parent>
         <groupId>com.flowlogix</groupId>
         <artifactId>infra-pom</artifactId>
-        <version>131</version>
+        <version>135</version>
     </parent>
 
     <modules>
@@ -25,7 +25,7 @@
     <properties>
         <!-- Override target java release -->
         <maven.compiler.release>17</maven.compiler.release>
-        <flowlogix.depchain.version>128</flowlogix.depchain.version>
+        <flowlogix.depchain.version>130</flowlogix.depchain.version>
         <checkstyle.suppressionsLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/suppressions.xml</checkstyle.suppressionsLocation>
         <checkstyle.headerLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/apache-header.txt</checkstyle.headerLocation>
         <!-- Turn off maven build cache -->
