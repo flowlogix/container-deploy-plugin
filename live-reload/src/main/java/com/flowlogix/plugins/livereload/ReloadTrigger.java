@@ -33,9 +33,14 @@ public class ReloadTrigger {
     @POST
     @Path("/reload/{application}")
     public Response reload(@PathParam("application") String application,
-                           @QueryParam("status") @DefaultValue("reload") String status) throws IOException {
-        ReloadEndpoint.broadcastReload(application, ReloadStatus.fromDescription(status));
-        return Response.ok().build();
+                           @QueryParam("status") @DefaultValue("reload") String statusString) throws IOException {
+        ReloadStatus status = ReloadStatus.fromDescription(statusString);
+        boolean messageSent = ReloadEndpoint.broadcastReload(application, status);
+        if (status.ordinal() > ReloadStatus.ERROR.ordinal() && !messageSent) {
+            return Response.status(Response.Status.EXPECTATION_FAILED).build();
+        } else {
+            return Response.ok().build();
+        }
     }
 
     @GET

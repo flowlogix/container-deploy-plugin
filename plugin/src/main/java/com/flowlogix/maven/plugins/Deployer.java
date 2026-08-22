@@ -215,10 +215,10 @@ class Deployer {
                     .build();
             response = client.send(request, HttpResponse.BodyHandlers.discarding());
         } catch (ConnectException e) {
-            responseCallback.accept("reload", null);
+            responseCallback.accept(status.name(), null);
             return CommandResult.NO_CONNECTION;
         }
-        responseCallback.accept("reload", new CommandResponse(response.statusCode(), null));
+        responseCallback.accept(status.name(), new CommandResponse(response.statusCode(), null));
         return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
     }
 
@@ -229,7 +229,7 @@ class Deployer {
                     .formatted(mojo.serverAminURL));
             return;
         }
-        if (response.statusCode() != 200 && response.statusCode() != 0) {
+        if (response.statusCode() != 200 && response.statusCode() != 417 && response.statusCode() != 0) {
             getLog().error("Command %s failed with response code %d".formatted(command, response.statusCode()));
             getLog().error("Response body: %s".formatted(response.body()));
         }

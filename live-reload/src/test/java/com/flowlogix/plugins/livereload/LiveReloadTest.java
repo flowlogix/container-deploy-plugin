@@ -87,6 +87,9 @@ class LiveReloadTest {
 
             ReloadEndpoint.broadcastReload("myapp", ReloadStatus.RELOAD);
             verify(session.getBasicRemote()).sendText(ReloadStatus.RELOAD.getDescription());
+            verify(session).getId();
+            verify(session, times(2)).getBasicRemote();
+            verifyNoMoreInteractions(mockSessions, session);
         }
     }
 
@@ -103,6 +106,7 @@ class LiveReloadTest {
             try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class);
                  MockedStatic<Response> responseMock = mockStatic(Response.class)) {
                 responseMock.when(Response::ok).thenReturn(responseBuilder);
+                responseMock.when(() -> Response.status(Response.Status.EXPECTATION_FAILED)).thenReturn(responseBuilder);
                 when(responseBuilder.build()).thenReturn(response);
                 when(response.getStatus()).thenReturn(Response.Status.OK.getStatusCode());
 
