@@ -9,5 +9,6 @@
         <version>x-SNAPSHOT</version>
     </parent>
 
+    <name>Container Deploy Plugin Common classes</name>
     <artifactId>container-deploy-plugin-common</artifactId>
 </project>
