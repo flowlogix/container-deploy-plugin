@@ -18,27 +18,16 @@
  */
 package com.flowlogix.plugins.livereload;
 
-import java.util.Arrays;
-
 enum ReloadStatus {
-    RELOAD("reload"),
-    ERROR("error"),
-    TEST_FAILURE("test-failure");
-
-    private final String description;
-
-    ReloadStatus(String description) {
-        this.description = description;
-    }
+    RELOAD,
+    ERROR,
+    TEST_FAILURE;
 
     String getDescription() {
-        return description;
+        return name().toLowerCase().replace("_", "-");
     }
 
-    static ReloadStatus fromValue(String value) {
-        return Arrays.stream(values())
-                .filter(status -> status.description.equals(value))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown reload status: " + value));
+    static ReloadStatus fromDescription(String description) {
+        return Enum.valueOf(ReloadStatus.class, description.toUpperCase().replace("-", "_"));
     }
 }

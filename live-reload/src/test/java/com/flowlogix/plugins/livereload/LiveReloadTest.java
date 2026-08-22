@@ -54,9 +54,9 @@ class LiveReloadTest {
     void broadcastDoesNotFailWhenNoSessions(ReloadStatus status) throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of());
-            reloadMock.when(() -> ReloadEndpoint.broadcast(any(), any())).thenCallRealMethod();
+            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcast("myapp", status);
+            ReloadEndpoint.broadcastReload("myapp", status);
             verifyNoMoreInteractions(mockSessions);
         }
     }
@@ -67,9 +67,9 @@ class LiveReloadTest {
     void broadcastDoesNotFailWhenOneSession(ReloadStatus status) throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
-            reloadMock.when(() -> ReloadEndpoint.broadcast(any(), any())).thenCallRealMethod();
+            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcast("myapp", status);
+            ReloadEndpoint.broadcastReload("myapp", status);
             verify(session).getId();
             verify(session.getBasicRemote()).sendText(status.getDescription());
             verify(session, times(2)).getBasicRemote();
@@ -82,10 +82,9 @@ class LiveReloadTest {
     void broadcastReloadDelegatesToReloadStatusReload() throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
-            reloadMock.when(() -> ReloadEndpoint.broadcast(any(), any())).thenCallRealMethod();
-            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any())).thenCallRealMethod();
+            reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcastReload("myapp");
+            ReloadEndpoint.broadcastReload("myapp", ReloadStatus.RELOAD);
             verify(session.getBasicRemote()).sendText(ReloadStatus.RELOAD.getDescription());
         }
     }
@@ -110,7 +109,7 @@ class LiveReloadTest {
                 Response actualResponse = trigger.reload("abc", status.getDescription());
 
                 assertThat(actualResponse.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
-                reloadMock.verify(() -> ReloadEndpoint.broadcast("abc", status));
+                reloadMock.verify(() -> ReloadEndpoint.broadcastReload("abc", status));
             }
         }
     }

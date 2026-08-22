@@ -33,7 +33,7 @@ public class ReloadTrigger {
     @Path("/reload/{application}")
     public Response reload(@PathParam("application") String application,
                            @QueryParam("status") @DefaultValue("reload") String status) throws IOException {
-        ReloadEndpoint.broadcast(application, ReloadStatus.fromValue(status));
+        ReloadEndpoint.broadcastReload(application, ReloadStatus.fromDescription(status));
         return Response.ok().build();
     }
 
