@@ -18,6 +18,7 @@
  */
 package com.flowlogix.maven.plugins;
 
+import com.flowlogix.plugins.common.ReloadStatus;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
@@ -58,7 +59,9 @@ class Deployer {
     enum CommandResult {
         NO_CONNECTION, ERROR, SUCCESS
     }
+
     record CommandResponse(int statusCode, String body) { }
+
     public record ServerLocations(
             String message,
             String command,
@@ -200,13 +203,14 @@ class Deployer {
 
     @SuppressWarnings("checkstyle:MagicNumber")
     @SneakyThrows({IOException.class, InterruptedException.class})
-    public CommandResult sendReloadCommand(String baseURL, String applicationName,
-                                           @NonNull BiConsumer<String, CommandResponse> responseCallback) {
+    public CommandResult sendReloadCommand(String baseURL, String applicationName, ReloadStatus status,
+            @NonNull BiConsumer<String, CommandResponse> responseCallback) {
         HttpResponse<Void> response;
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/%s/reload/%s".formatted(baseURL, FLOWLOGIX_LIVERELOAD, applicationName)))
+                    .uri(URI.create("%s/%s/reload/%s?status=%s".formatted(baseURL,
+                            FLOWLOGIX_LIVERELOAD, applicationName, status.getDescription())))
                     .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
             response = client.send(request, HttpResponse.BodyHandlers.discarding());

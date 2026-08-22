@@ -18,6 +18,7 @@
  */
 package com.flowlogix.plugins.livereload;
 
+import com.flowlogix.plugins.common.ReloadStatus;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.Session;
@@ -50,11 +51,12 @@ public class ReloadEndpoint {
                 .forEach(SESSIONS::remove);
     }
 
-    public static void broadcastReload(String application) throws IOException {
-        log.fine("broadcasting reload endpoint %s".formatted(application));
+    static void broadcastReload(String application, ReloadStatus status) throws IOException {
+        log.fine("broadcasting %s endpoint %s".formatted(status.getDescription(), application));
         for (Session session : sessions(application)) {
-            log.fine("Reloading Web LiveReload application %s session %s".formatted(application, session.getId()));
-            session.getBasicRemote().sendText("reload");
+            log.fine("Sending %s to Web LiveReload application %s session %s".formatted(
+                    status.getDescription(), application, session.getId()));
+            session.getBasicRemote().sendText(status.getDescription());
         }
     }
 
