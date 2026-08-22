@@ -87,6 +87,9 @@ class LiveReloadTest {
 
             ReloadEndpoint.broadcastReload("myapp", ReloadStatus.RELOAD);
             verify(session.getBasicRemote()).sendText(ReloadStatus.RELOAD.getDescription());
+            verify(session).getId();
+            verify(session, times(2)).getBasicRemote();
+            verifyNoMoreInteractions(mockSessions, session);
         }
     }
 

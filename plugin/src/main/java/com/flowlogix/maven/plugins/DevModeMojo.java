@@ -59,7 +59,7 @@ public class DevModeMojo extends CommonDevMojo {
     protected boolean openBrowser = true;
     protected boolean deploy = true;
 
-    @Parameter(property = "livereload-helper-version", defaultValue = "1.0")
+    @Parameter(property = "livereload-helper-version", defaultValue = "1.4")
     String livereloadHelperVersion;
 
     @Parameter(property = "watcher-delay", defaultValue = "50")
@@ -170,26 +170,34 @@ public class DevModeMojo extends CommonDevMojo {
         if (filteredFiles.isEmpty()) {
             return;
         }
-        explodedWar();
-        if (codeChanged) {
-            if (!compilationSucceeded) {
-                getLog().warn("Compilation failed, sending error command for " + project.getBuild().getFinalName());
-                if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(), ReloadStatus.ERROR,
-                        deployer::printResponse) == CommandResult.ERROR) {
-                    getLog().warn("Website Error Handler failed");
-                }
-                return;
-            }
+        boolean isDeployError = !explodedWar();
+        isDeployError = deploy(codeChanged, compilationSucceeded, isDeployError);
+        reloadAndTest(codeChanged, compilationSucceeded, isDeployError);
+    }
+
+    private boolean deploy(boolean codeChanged, boolean compilationSucceeded, boolean isDeployError) {
+        if (codeChanged && compilationSucceeded) {
             getLog().info("Reloading " + project.getBuild().getFinalName());
-            if (deployer.sendDisableCommand(deployer::printResponse) == CommandResult.ERROR) {
-                deployer.sendDeployCommand(deployer::printResponse, null, 0);
-            } else {
-                deployer.sendEnableCommand(deployer::printResponse);
+            if (deployer.sendDisableCommand(deployer::printResponse) != CommandResult.SUCCESS) {
+                getLog().info("Sending enable or deploy command ...");
             }
+            isDeployError = deployer.sendEnableCommand(deployer::printResponse) == CommandResult.ERROR;
+            isDeployError = isDeployError && deployer.sendDeployCommand(deployer::printResponse,
+                    null, 0) == CommandResult.ERROR;
         }
-        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(), ReloadStatus.RELOAD,
+        return isDeployError;
+    }
+
+    private void reloadAndTest(boolean codeChanged, boolean compilationSucceeded, boolean isDeployError) {
+        if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+                codeChanged && !compilationSucceeded || isDeployError ? ReloadStatus.ERROR : ReloadStatus.RELOAD,
                 deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Website Reload failed");
+        } else if (compilationSucceeded) {
+            if (!runTests()) {
+                deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+                        ReloadStatus.TEST_FAILURE, deployer::printResponse);
+            }
         }
     }
 

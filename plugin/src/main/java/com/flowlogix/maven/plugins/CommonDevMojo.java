@@ -213,6 +213,12 @@ abstract class CommonDevMojo extends AbstractMojo {
                 project, session, pluginManager, config -> { });
     }
 
+    boolean runTests() {
+        return callGenericMojo(ORG_APACHE_MAVEN_PLUGINS,
+                "maven-surefire-plugin", "test", null,
+                project, session, pluginManager, config -> { });
+    }
+
     private String computeBaseURL() {
         return serverAminURL.replaceFirst(":\\d+$", ":" + serverHttpPort);
     }
