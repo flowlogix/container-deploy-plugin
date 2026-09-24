@@ -99,8 +99,10 @@ class Deployer {
                         cacheTTL != null ? "cacheTTL=%d".formatted(cacheTTL) : null)
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(":"));
+        String applicationName = name != null ? name : mojo.project.getBuild().getFinalName();
         return sendCommand("deploy", Map.of(
-                "name", name != null ? name : mojo.project.getBuild().getFinalName(),
+                "name", applicationName,
+                "contextroot", applicationName,
                 "availabilityenabled", String.valueOf(mojo.availabilityenabled),
                 "keepstate", String.valueOf(mojo.keepstate),
                 "force", String.valueOf(mojo.force),
