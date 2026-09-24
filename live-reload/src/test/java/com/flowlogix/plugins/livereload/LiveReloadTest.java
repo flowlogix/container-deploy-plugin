@@ -19,6 +19,8 @@
 package com.flowlogix.plugins.livereload;
 
 import com.flowlogix.plugins.common.ReloadStatus;
+import com.flowlogix.plugins.common.LiveReloadProtocol;
+import jakarta.websocket.RemoteEndpoint;
 import jakarta.websocket.Session;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
@@ -222,6 +224,29 @@ class LiveReloadTest {
             verify(session, times(2)).getBasicRemote();
             verifyNoMoreInteractions(mockSessions, session);
         }
+    }
+
+    @Test
+    void shutdownContinuesAfterSessionFailureAndClearsSessions() throws IOException {
+        Session failedSession = mock(Session.class);
+        RemoteEndpoint.Basic failedRemote = mock(RemoteEndpoint.Basic.class);
+        Session activeSession = mock(Session.class);
+        RemoteEndpoint.Basic activeRemote = mock(RemoteEndpoint.Basic.class);
+        when(failedSession.getBasicRemote()).thenReturn(failedRemote);
+        when(activeSession.getBasicRemote()).thenReturn(activeRemote);
+        when(failedSession.getId()).thenReturn("failed");
+        org.mockito.Mockito.doThrow(new IOException("session already closed"))
+                .when(failedRemote).sendText(LiveReloadProtocol.SHUTDOWN_MESSAGE);
+        ReloadEndpoint endpoint = new ReloadEndpoint();
+        endpoint.onMessage("first-app", failedSession);
+        endpoint.onMessage("second-app", activeSession);
+
+        ReloadEndpoint.shutdown();
+
+        verify(failedSession).close();
+        verify(activeRemote).sendText(LiveReloadProtocol.SHUTDOWN_MESSAGE);
+        verify(activeSession).close();
+        assertThat(ReloadEndpoint.registeredApplications()).isNotEmpty();
     }
 
     @Nested

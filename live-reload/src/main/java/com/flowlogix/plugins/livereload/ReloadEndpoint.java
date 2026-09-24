@@ -24,7 +24,6 @@ import jakarta.websocket.OnClose;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
-import lombok.SneakyThrows;
 import lombok.extern.java.Log;
 import java.io.IOException;
 import java.util.Optional;
@@ -98,9 +97,12 @@ public class ReloadEndpoint {
         SESSIONS.values().stream().flatMap(Set::stream).distinct().forEach(ReloadEndpoint::shutdown);
     }
 
-    @SneakyThrows(IOException.class)
     private static void shutdown(Session session) {
-        session.getBasicRemote().sendText(LiveReloadProtocol.SHUTDOWN_MESSAGE);
-        session.close();
+        try (session) {
+            session.getBasicRemote().sendText(LiveReloadProtocol.SHUTDOWN_MESSAGE);
+        } catch (IOException e) {
+            log.fine("Failed to shut down Web LiveReload session %s: %s".formatted(
+                    session.getId(), e.getMessage()));
+        }
     }
 }
