@@ -40,6 +40,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +58,9 @@ class LiveReloadTest {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of());
             reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcastReload("myapp", status);
+            boolean messageSent = ReloadEndpoint.broadcastReload("myapp", status);
+
+            assertThat(messageSent).isFalse();
             verifyNoMoreInteractions(mockSessions);
         }
     }
@@ -70,7 +73,9 @@ class LiveReloadTest {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
             reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcastReload("myapp", status);
+            boolean messageSent = ReloadEndpoint.broadcastReload("myapp", status);
+
+            assertThat(messageSent).isTrue();
             verify(session).getId();
             verify(session.getBasicRemote()).sendText(status.getDescription());
             verify(session, times(2)).getBasicRemote();
@@ -85,7 +90,9 @@ class LiveReloadTest {
             reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
             reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
-            ReloadEndpoint.broadcastReload("myapp", ReloadStatus.RELOAD);
+            boolean messageSent = ReloadEndpoint.broadcastReload("myapp", ReloadStatus.RELOAD);
+
+            assertThat(messageSent).isTrue();
             verify(session.getBasicRemote()).sendText(ReloadStatus.RELOAD.getDescription());
             verify(session).getId();
             verify(session, times(2)).getBasicRemote();
@@ -109,12 +116,42 @@ class LiveReloadTest {
                 responseMock.when(() -> Response.status(Response.Status.EXPECTATION_FAILED)).thenReturn(responseBuilder);
                 when(responseBuilder.build()).thenReturn(response);
                 when(response.getStatus()).thenReturn(Response.Status.OK.getStatusCode());
+                reloadMock.when(() -> ReloadEndpoint.broadcastReload("abc", status)).thenReturn(true);
 
                 ReloadTrigger trigger = new ReloadTrigger();
                 Response actualResponse = trigger.reload("abc", status.getDescription());
 
                 assertThat(actualResponse.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
                 reloadMock.verify(() -> ReloadEndpoint.broadcastReload("abc", status));
+            }
+        }
+
+        @ParameterizedTest
+        @EnumSource(ReloadStatus.class)
+        void reloadReturnsExpectationFailedWhenBroadcastReachesNoBrowsers(ReloadStatus status) throws Exception {
+            try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class);
+                 MockedStatic<Response> responseMock = mockStatic(Response.class)) {
+                responseMock.when(() -> Response.status(Response.Status.EXPECTATION_FAILED))
+                        .thenReturn(responseBuilder);
+                when(responseBuilder.entity("No browser sessions registered for application 'abc'. "
+                        + "Registered applications: [other]")).thenReturn(responseBuilder);
+                when(responseBuilder.build()).thenReturn(response);
+                when(response.getStatus()).thenReturn(Response.Status.EXPECTATION_FAILED.getStatusCode());
+                reloadMock.when(() -> ReloadEndpoint.broadcastReload("abc", status)).thenReturn(false);
+                reloadMock.when(ReloadEndpoint::registeredApplications).thenReturn(Set.of("other"));
+
+                ReloadTrigger trigger = new ReloadTrigger();
+                Response actualResponse = trigger.reload("abc", status.getDescription());
+
+                assertThat(actualResponse.getStatus()).isEqualTo(Response.Status.EXPECTATION_FAILED.getStatusCode());
+                reloadMock.verify(() -> ReloadEndpoint.broadcastReload("abc", status));
+                reloadMock.verify(ReloadEndpoint::registeredApplications);
+                responseMock.verify(() -> Response.status(Response.Status.EXPECTATION_FAILED));
+                verify(responseBuilder).entity("No browser sessions registered for application 'abc'. "
+                        + "Registered applications: [other]");
+                verify(responseBuilder).build();
+                verify(response).getStatus();
+                verifyNoInteractions(mockSessions);
             }
         }
     }

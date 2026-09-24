@@ -51,8 +51,9 @@ public class ReloadEndpoint {
                 .forEach(SESSIONS::remove);
     }
 
-    static boolean broadcastReload(String application, ReloadStatus status) throws IOException {
-        log.fine("broadcasting %s endpoint %s".formatted(status.getDescription(), application));
+    static boolean broadcastReload(String application, ReloadStatus status) {
+        log.fine("Broadcasting %s to Web LiveReload application %s. Registered applications: %s".formatted(
+                status.getDescription(), application, registeredApplications()));
         boolean messageSent = false;
         for (Session session : sessions(application)) {
             log.fine("Sending %s to Web LiveReload application %s session %s".formatted(
@@ -70,6 +71,10 @@ public class ReloadEndpoint {
 
     static Set<Session> sessions(String application) {
         return Optional.ofNullable(SESSIONS.get(application)).orElse(Set.of());
+    }
+
+    static Set<String> registeredApplications() {
+        return Set.copyOf(SESSIONS.keySet());
     }
 
     static void shutdown() {

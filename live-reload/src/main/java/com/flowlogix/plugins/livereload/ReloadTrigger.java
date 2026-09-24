@@ -27,6 +27,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.util.Set;
 
 @Path("/")
 public class ReloadTrigger {
@@ -36,8 +37,12 @@ public class ReloadTrigger {
                            @QueryParam("status") @DefaultValue("reload") String statusString) throws IOException {
         ReloadStatus status = ReloadStatus.fromDescription(statusString);
         boolean messageSent = ReloadEndpoint.broadcastReload(application, status);
-        if (status.ordinal() > ReloadStatus.ERROR.ordinal() && !messageSent) {
-            return Response.status(Response.Status.EXPECTATION_FAILED).build();
+        if (!messageSent) {
+            Set<String> registeredApplications = ReloadEndpoint.registeredApplications();
+            return Response.status(Response.Status.EXPECTATION_FAILED)
+                    .entity("No browser sessions registered for application '%s'. Registered applications: %s"
+                            .formatted(application, registeredApplications.isEmpty() ? "<none>" : registeredApplications))
+                    .build();
         } else {
             return Response.ok().build();
         }

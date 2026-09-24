@@ -207,7 +207,7 @@ class Deployer {
     @SneakyThrows({IOException.class, InterruptedException.class})
     public CommandResult sendReloadCommand(String baseURL, String applicationName, ReloadStatus status,
             @NonNull BiConsumer<String, CommandResponse> responseCallback) {
-        HttpResponse<Void> response;
+        HttpResponse<String> response;
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
@@ -215,12 +215,13 @@ class Deployer {
                             FLOWLOGIX_LIVERELOAD, applicationName, status.getDescription())))
                     .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
-            response = client.send(request, HttpResponse.BodyHandlers.discarding());
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (ConnectException e) {
             responseCallback.accept(status.name(), null);
             return CommandResult.NO_CONNECTION;
         }
-        responseCallback.accept(status.name(), new CommandResponse(response.statusCode(), null));
+        responseCallback.accept("<%s>".formatted(status.name().toLowerCase()),
+                new CommandResponse(response.statusCode(), response.body()));
         return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
     }
 
@@ -231,7 +232,9 @@ class Deployer {
                     .formatted(mojo.serverAminURL));
             return;
         }
-        if (response.statusCode() != 200 && response.statusCode() != 417 && response.statusCode() != 0) {
+        if (response.statusCode() == 417) {
+            getLog().warn("Command %s did not reach a browser: %s".formatted(command, response.body()));
+        } else if (response.statusCode() != 200 && response.statusCode() != 0) {
             getLog().error("Command %s failed with response code %d".formatted(command, response.statusCode()));
             getLog().error("Response body: %s".formatted(response.body()));
         }
