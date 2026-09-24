@@ -33,6 +33,6 @@ public class ReloadEndpointShutdown {
 
     void shutdown(@Observes Shutdown shutdown) {
         log.fine("Shutting Down LiveReload endpoint");
-        ReloadEndpoint.shutdown();
+        ReloadEndpoint.shutdown(ReloadEndpoint.SESSIONS);
     }
 }

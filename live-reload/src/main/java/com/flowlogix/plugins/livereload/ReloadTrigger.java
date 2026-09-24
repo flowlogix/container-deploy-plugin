@@ -39,7 +39,7 @@ public class ReloadTrigger {
         ReloadStatus status = ReloadStatus.fromDescription(statusString);
         boolean messageSent = ReloadEndpoint.broadcastReload(application, status);
         if (!messageSent) {
-            Set<String> registeredApplications = ReloadEndpoint.registeredApplications();
+            Set<String> registeredApplications = ReloadEndpoint.registeredApplications(ReloadEndpoint.SESSIONS);
             return Response.status(Response.Status.EXPECTATION_FAILED)
                     .entity("No browser sessions registered for application '%s'. Registered applications: %s"
                             .formatted(application, registeredApplications.isEmpty() ? "<none>" : registeredApplications))

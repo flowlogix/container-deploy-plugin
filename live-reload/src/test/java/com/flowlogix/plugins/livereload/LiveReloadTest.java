@@ -181,7 +181,7 @@ class LiveReloadTest {
     @SuppressWarnings("checkstyle:MagicNumber")
     void broadcastDoesNotFailWhenNoSessions(ReloadStatus status) throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
-            reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of());
+            reloadMock.when(() -> ReloadEndpoint.sessions(any(), any())).thenReturn(Set.of());
             reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
             boolean messageSent = ReloadEndpoint.broadcastReload("myapp", status);
@@ -196,7 +196,7 @@ class LiveReloadTest {
     @SuppressWarnings("checkstyle:MagicNumber")
     void broadcastDoesNotFailWhenOneSession(ReloadStatus status) throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
-            reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
+            reloadMock.when(() -> ReloadEndpoint.sessions(any(), any())).thenReturn(Set.of(session));
             reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
             boolean messageSent = ReloadEndpoint.broadcastReload("myapp", status);
@@ -213,7 +213,7 @@ class LiveReloadTest {
     @SuppressWarnings("checkstyle:MagicNumber")
     void broadcastReloadDelegatesToReloadStatusReload() throws IOException {
         try (MockedStatic<ReloadEndpoint> reloadMock = mockStatic(ReloadEndpoint.class)) {
-            reloadMock.when(() -> ReloadEndpoint.sessions(any())).thenReturn(Set.of(session));
+            reloadMock.when(() -> ReloadEndpoint.sessions(any(), any())).thenReturn(Set.of(session));
             reloadMock.when(() -> ReloadEndpoint.broadcastReload(any(), any())).thenCallRealMethod();
 
             boolean messageSent = ReloadEndpoint.broadcastReload("myapp", ReloadStatus.RELOAD);
@@ -227,7 +227,7 @@ class LiveReloadTest {
     }
 
     @Test
-    void shutdownContinuesAfterSessionFailureAndClearsSessions() throws IOException {
+    void shutdownContinuesAfterSessionFailure() throws IOException {
         Session failedSession = mock(Session.class);
         RemoteEndpoint.Basic failedRemote = mock(RemoteEndpoint.Basic.class);
         Session activeSession = mock(Session.class);
@@ -237,16 +237,17 @@ class LiveReloadTest {
         when(failedSession.getId()).thenReturn("failed");
         org.mockito.Mockito.doThrow(new IOException("session already closed"))
                 .when(failedRemote).sendText(LiveReloadProtocol.SHUTDOWN_MESSAGE);
-        ReloadEndpoint endpoint = new ReloadEndpoint();
-        endpoint.onMessage("first-app", failedSession);
-        endpoint.onMessage("second-app", activeSession);
+        ConcurrentMap<String, Set<Session>> sessionsByApplication = new ConcurrentHashMap<>();
+        ReloadEndpoint.register(sessionsByApplication, "first-app", failedSession);
+        ReloadEndpoint.register(sessionsByApplication, "second-app", activeSession);
 
-        ReloadEndpoint.shutdown();
+        ReloadEndpoint.shutdown(sessionsByApplication);
 
         verify(failedSession).close();
         verify(activeRemote).sendText(LiveReloadProtocol.SHUTDOWN_MESSAGE);
         verify(activeSession).close();
-        assertThat(ReloadEndpoint.registeredApplications()).isNotEmpty();
+        assertThat(ReloadEndpoint.registeredApplications(sessionsByApplication))
+                .containsExactlyInAnyOrder("first-app", "second-app");
     }
 
     @Nested
@@ -287,14 +288,14 @@ class LiveReloadTest {
                 when(responseBuilder.build()).thenReturn(response);
                 when(response.getStatus()).thenReturn(Response.Status.EXPECTATION_FAILED.getStatusCode());
                 reloadMock.when(() -> ReloadEndpoint.broadcastReload("abc", status)).thenReturn(false);
-                reloadMock.when(ReloadEndpoint::registeredApplications).thenReturn(Set.of("other"));
+                reloadMock.when(() -> ReloadEndpoint.registeredApplications(any())).thenReturn(Set.of("other"));
 
                 ReloadTrigger trigger = new ReloadTrigger();
                 Response actualResponse = trigger.reload("abc", status.getDescription());
 
                 assertThat(actualResponse.getStatus()).isEqualTo(Response.Status.EXPECTATION_FAILED.getStatusCode());
                 reloadMock.verify(() -> ReloadEndpoint.broadcastReload("abc", status));
-                reloadMock.verify(ReloadEndpoint::registeredApplications);
+                reloadMock.verify(() -> ReloadEndpoint.registeredApplications(any()));
                 responseMock.verify(() -> Response.status(Response.Status.EXPECTATION_FAILED));
                 verify(responseBuilder).entity("No browser sessions registered for application 'abc'. "
                         + "Registered applications: [other]");

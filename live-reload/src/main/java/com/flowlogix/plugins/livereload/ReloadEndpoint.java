@@ -35,7 +35,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @Log
 @ServerEndpoint(value = LiveReloadProtocol.WEBSOCKET_PATH)
 public class ReloadEndpoint {
-    private static final ConcurrentMap<String, Set<Session>> SESSIONS = new ConcurrentHashMap<>();
+    static final ConcurrentMap<String, Set<Session>> SESSIONS = new ConcurrentHashMap<>();
 
     @OnMessage
     public void onMessage(String message, Session session) {
@@ -69,9 +69,9 @@ public class ReloadEndpoint {
 
     static boolean broadcastReload(String application, ReloadStatus status) {
         log.fine("Broadcasting %s to Web LiveReload application %s. Registered applications: %s".formatted(
-                status.getDescription(), application, registeredApplications()));
+                status.getDescription(), application, registeredApplications(SESSIONS)));
         boolean messageSent = false;
-        for (Session session : sessions(application)) {
+        for (Session session : sessions(SESSIONS, application)) {
             log.fine("Sending %s to Web LiveReload application %s session %s".formatted(
                     status.getDescription(), application, session.getId()));
             try {
@@ -85,16 +85,16 @@ public class ReloadEndpoint {
         return messageSent;
     }
 
-    static Set<Session> sessions(String application) {
-        return Optional.ofNullable(SESSIONS.get(application)).orElse(Set.of());
+    static Set<Session> sessions(ConcurrentMap<String, Set<Session>> sessionsByApplication, String application) {
+        return Optional.ofNullable(sessionsByApplication.get(application)).orElse(Set.of());
     }
 
-    static Set<String> registeredApplications() {
-        return Set.copyOf(SESSIONS.keySet());
+    static Set<String> registeredApplications(ConcurrentMap<String, Set<Session>> sessionsByApplication) {
+        return Set.copyOf(sessionsByApplication.keySet());
     }
 
-    static void shutdown() {
-        SESSIONS.values().stream().flatMap(Set::stream).distinct().forEach(ReloadEndpoint::shutdown);
+    static void shutdown(ConcurrentMap<String, Set<Session>> sessionsByApplication) {
+        sessionsByApplication.values().stream().flatMap(Set::stream).distinct().forEach(ReloadEndpoint::shutdown);
     }
 
     private static void shutdown(Session session) {
