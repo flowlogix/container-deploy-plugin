@@ -27,29 +27,45 @@ import jakarta.websocket.server.ServerEndpoint;
 import lombok.SneakyThrows;
 import lombok.extern.java.Log;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 @Log
 @ServerEndpoint(value = LiveReloadProtocol.WEBSOCKET_PATH)
 public class ReloadEndpoint {
-    private static final Map<String, Set<Session>> SESSIONS = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Set<Session>> SESSIONS = new ConcurrentHashMap<>();
 
     @OnMessage
     public void onMessage(String message, Session session) {
-        SESSIONS.computeIfAbsent(message, var -> new CopyOnWriteArraySet<>()).add(session);
+        register(SESSIONS, message, session);
     }
 
     @OnClose
     public void onClose(Session session) {
-        SESSIONS.forEach((var, value) -> value.remove(session));
-        SESSIONS.entrySet().stream()
-                .filter(entry -> entry.getValue().isEmpty())
-                .map(Map.Entry::getKey) .distinct()
-                .forEach(SESSIONS::remove);
+        unregister(SESSIONS, session);
+    }
+
+    static void register(ConcurrentMap<String, Set<Session>> sessionsByApplication,
+                         String application, Session session) {
+        sessionsByApplication.compute(application, (key, sessions) -> {
+            Set<Session> updatedSessions = sessions == null ? new CopyOnWriteArraySet<>() : sessions;
+            updatedSessions.add(session);
+            return updatedSessions;
+        });
+    }
+
+    static void unregister(ConcurrentMap<String, Set<Session>> sessionsByApplication, Session session) {
+        sessionsByApplication.keySet().forEach(application ->
+                sessionsByApplication.compute(application, (key, sessions) -> {
+                    if (sessions == null) {
+                        return null;
+                    }
+                    sessions.remove(session);
+                    return sessions.isEmpty() ? null : sessions;
+                }));
     }
 
     static boolean broadcastReload(String application, ReloadStatus status) {

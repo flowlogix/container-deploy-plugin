@@ -36,7 +36,14 @@ import org.mockito.MockedStatic;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -47,10 +54,81 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class LiveReloadTest {
+    private static final int THREAD_TIMEOUT_SECONDS = 5;
+
     @Mock
     Set<Session> mockSessions;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     Session session;
+
+    @Test
+    @SuppressWarnings("checkstyle:MagicNumber")
+    void preservesRegistrationAddedWhileEmptySessionSetIsRemoved() throws Exception {
+        String application = "myapp";
+        Session closingSession = session;
+        Session connectingSession = mock(Session.class);
+        CountDownLatch emptySetObserved = new CountDownLatch(1);
+        CountDownLatch finishCleanup = new CountDownLatch(1);
+        Set<Session> sessions = new CopyOnWriteArraySet<>() {
+            @Override
+            public boolean isEmpty() {
+                boolean empty = super.isEmpty();
+                emptySetObserved.countDown();
+                try {
+                    if (!finishCleanup.await(THREAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                        throw new AssertionError("Timed out waiting to finish session cleanup");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+                return empty;
+            }
+        };
+        sessions.add(closingSession);
+        ConcurrentMap<String, Set<Session>> sessionsByApplication = new ConcurrentHashMap<>();
+        sessionsByApplication.put(application, sessions);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+
+        Thread closeThread = new Thread(() -> runAndCapture(
+                () -> ReloadEndpoint.unregister(sessionsByApplication, closingSession), failure));
+        Thread registrationThread = new Thread(() -> runAndCapture(
+                () -> ReloadEndpoint.register(sessionsByApplication, application, connectingSession), failure));
+
+        try {
+            closeThread.start();
+            assertThat(emptySetObserved.await(THREAD_TIMEOUT_SECONDS, TimeUnit.SECONDS)).isTrue();
+
+            registrationThread.start();
+            awaitBlockedOrTerminated(registrationThread);
+        } finally {
+            finishCleanup.countDown();
+            closeThread.join(TimeUnit.SECONDS.toMillis(THREAD_TIMEOUT_SECONDS));
+            registrationThread.join(TimeUnit.SECONDS.toMillis(THREAD_TIMEOUT_SECONDS));
+        }
+
+        assertThat(failure.get()).isNull();
+        assertThat(closeThread.isAlive()).isFalse();
+        assertThat(registrationThread.isAlive()).isFalse();
+        assertThat(sessionsByApplication.get(application)).containsExactly(connectingSession);
+    }
+
+    private static void awaitBlockedOrTerminated(Thread thread) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(THREAD_TIMEOUT_SECONDS);
+        while (thread.isAlive() && thread.getState() != Thread.State.BLOCKED
+                && System.nanoTime() < deadline) {
+            Thread.onSpinWait();
+        }
+        assertThat(thread.isAlive() && thread.getState() != Thread.State.BLOCKED).isFalse();
+    }
+
+    private static void runAndCapture(Runnable action, AtomicReference<Throwable> failure) {
+        try {
+            action.run();
+        } catch (Throwable throwable) {
+            failure.compareAndSet(null, throwable);
+        }
+    }
 
     @ParameterizedTest
     @ValueSource(strings = {
