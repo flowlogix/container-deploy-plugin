@@ -19,6 +19,7 @@
 package com.flowlogix.plugins.livereload;
 
 import com.flowlogix.plugins.common.ReloadStatus;
+import com.flowlogix.plugins.common.LiveReloadProtocol;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.Session;
@@ -33,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 @Log
-@ServerEndpoint(value = "/livereload")
+@ServerEndpoint(value = LiveReloadProtocol.WEBSOCKET_PATH)
 public class ReloadEndpoint {
     private static final Map<String, Set<Session>> SESSIONS = new ConcurrentHashMap<>();
 
@@ -83,7 +84,7 @@ public class ReloadEndpoint {
 
     @SneakyThrows(IOException.class)
     private static void shutdown(Session session) {
-        session.getBasicRemote().sendText("shutdown");
+        session.getBasicRemote().sendText(LiveReloadProtocol.SHUTDOWN_MESSAGE);
         session.close();
     }
 }

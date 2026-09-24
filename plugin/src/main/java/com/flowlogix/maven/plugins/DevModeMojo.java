@@ -20,6 +20,7 @@ package com.flowlogix.maven.plugins;
 
 import com.flowlogix.maven.plugins.Deployer.CommandResult;
 import com.flowlogix.plugins.common.ReloadStatus;
+import com.flowlogix.plugins.common.LiveReloadProtocol;
 import lombok.SneakyThrows;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -36,7 +37,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static com.flowlogix.maven.plugins.Deployer.DEFAULT;
-import static com.flowlogix.maven.plugins.Deployer.FLOWLOGIX_LIVERELOAD;
+import static com.flowlogix.plugins.common.LiveReloadProtocol.LIVE_RELOAD_HELPER_VERSION;
 import static java.util.function.Predicate.not;
 
 /**
@@ -60,7 +61,7 @@ public class DevModeMojo extends CommonDevMojo {
     protected boolean openBrowser = true;
     protected boolean deploy = true;
 
-    @Parameter(property = "livereload-helper-version", defaultValue = "1.4")
+    @Parameter(property = "livereload-helper-version", defaultValue = LIVE_RELOAD_HELPER_VERSION)
     String livereloadHelperVersion;
 
     @Parameter(property = "watcher-delay", defaultValue = "50")
@@ -142,12 +143,13 @@ public class DevModeMojo extends CommonDevMojo {
     }
 
     private void deployLiveReloadHelper() {
-        if (!deployer.pingWebsite("%s/%s/ping".formatted(getBaseURL(), FLOWLOGIX_LIVERELOAD))) {
+        if (!deployer.pingWebsite("%s/%s%s".formatted(getBaseURL(),
+                LiveReloadProtocol.CONTEXT_ROOT, LiveReloadProtocol.PING_PATH))) {
             getLog().info("Deploying LiveReload helper application");
             if (deployer.sendCommand("deploy-remote-archive", Map.of(
                     "name", FLOWLOGIX_LIVERELOAD_HELPER_APP_NAME,
                     "force", Boolean.TRUE.toString(),
-                    "contextroot", FLOWLOGIX_LIVERELOAD,
+                    "contextroot", LiveReloadProtocol.CONTEXT_ROOT,
                     "additionalRepositories", String.join(",", additionalRepositories),
                     DEFAULT, "%s:%s:%s"
                             .formatted("com.flowlogix.plugins", "live-reload",
