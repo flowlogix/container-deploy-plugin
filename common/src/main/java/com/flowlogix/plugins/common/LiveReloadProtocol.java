@@ -24,7 +24,7 @@ package com.flowlogix.plugins.common;
 @SuppressWarnings("checkstyle:InterfaceIsType")
 public sealed interface LiveReloadProtocol permits LiveReloadProtocol.NONE {
     /** Version of the LiveReload helper application. */
-    String LIVE_RELOAD_HELPER_VERSION = "1.5";
+    String LIVE_RELOAD_HELPER_VERSION = "1.5.1";
 
     /** Context root used when deploying the LiveReload helper application. */
     String CONTEXT_ROOT = "flowlogix-livereload";
