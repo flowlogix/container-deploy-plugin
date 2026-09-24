@@ -56,7 +56,7 @@ class Deployer {
      */
     static final String DEFAULT = "DEFAULT";
     enum CommandResult {
-        NO_CONNECTION, ERROR, SUCCESS
+        NO_CONNECTION, NOT_DELIVERED, ERROR, SUCCESS
     }
 
     record CommandResponse(int statusCode, String body) { }
@@ -125,7 +125,7 @@ class Deployer {
         AtomicReference<ServerLocations> serverLocations = new AtomicReference<>();
         return switch (sendCommand("__locations", Map.of(),
                 (command, response) -> serverLocationsResponse(command, response, serverLocations))) {
-            case NO_CONNECTION, ERROR -> null;
+            case NO_CONNECTION, NOT_DELIVERED, ERROR -> null;
             case SUCCESS -> serverLocations.get();
         };
     }
@@ -222,7 +222,16 @@ class Deployer {
         }
         responseCallback.accept("<%s>".formatted(status.name().toLowerCase()),
                 new CommandResponse(response.statusCode(), response.body()));
-        return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
+        return reloadCommandResult(response.statusCode());
+    }
+
+    @SuppressWarnings("checkstyle:MagicNumber")
+    static CommandResult reloadCommandResult(int statusCode) {
+        return switch (statusCode) {
+            case 200 -> CommandResult.SUCCESS;
+            case 417 -> CommandResult.NOT_DELIVERED;
+            default -> CommandResult.ERROR;
+        };
     }
 
     @SuppressWarnings("checkstyle:MagicNumber")
