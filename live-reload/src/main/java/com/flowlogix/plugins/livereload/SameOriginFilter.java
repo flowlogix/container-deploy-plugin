@@ -19,12 +19,10 @@
 package com.flowlogix.plugins.livereload;
 
 import com.flowlogix.plugins.common.LiveReloadProtocol;
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.HttpFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -33,22 +31,19 @@ import java.net.URISyntaxException;
 import java.util.Locale;
 
 @WebFilter(LiveReloadProtocol.WEBSOCKET_PATH)
-public class SameOriginFilter implements Filter {
+public class SameOriginFilter extends HttpFilter {
     private static final int HTTP_PORT = 80;
     private static final int HTTPS_PORT = 443;
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+    protected void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        if (request instanceof HttpServletRequest httpRequest
-                && response instanceof HttpServletResponse httpResponse) {
-            if (isSameOrigin(httpRequest.getHeader("Origin"), httpRequest.getScheme(),
-                    httpRequest.getServerName(), httpRequest.getServerPort())) {
-                chain.doFilter(request, response);
-            } else {
-                httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
-                        "WebSocket origin does not match the request origin");
-            }
+        if (isSameOrigin(request.getHeader("Origin"), request.getScheme(),
+                request.getServerName(), request.getServerPort())) {
+            chain.doFilter(request, response);
+        } else {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                    "WebSocket origin does not match the request origin");
         }
     }
 
