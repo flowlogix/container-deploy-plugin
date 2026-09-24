@@ -19,6 +19,7 @@
 package com.flowlogix.maven.plugins;
 
 import com.flowlogix.plugins.common.ReloadStatus;
+import com.flowlogix.plugins.common.LiveReloadProtocol;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
@@ -54,8 +55,6 @@ class Deployer {
      *  Key for default parameter, which is the file to be deployed, enabled, disabled or undeployed.
      */
     static final String DEFAULT = "DEFAULT";
-    static final String FLOWLOGIX_LIVERELOAD = "flowlogix-livereload";
-
     enum CommandResult {
         NO_CONNECTION, ERROR, SUCCESS
     }
@@ -211,8 +210,9 @@ class Deployer {
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("%s/%s/reload/%s?status=%s".formatted(baseURL,
-                            FLOWLOGIX_LIVERELOAD, applicationName, status.getDescription())))
+                    .uri(URI.create("%s/%s%s/%s?status=%s".formatted(baseURL,
+                            LiveReloadProtocol.CONTEXT_ROOT, LiveReloadProtocol.RELOAD_PATH,
+                            applicationName, status.getDescription())))
                     .POST(HttpRequest.BodyPublishers.noBody())
                     .build();
             response = client.send(request, HttpResponse.BodyHandlers.ofString());

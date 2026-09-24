@@ -19,6 +19,7 @@
 package com.flowlogix.plugins.livereload;
 
 import com.flowlogix.plugins.common.ReloadStatus;
+import com.flowlogix.plugins.common.LiveReloadProtocol;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -32,7 +33,7 @@ import java.util.Set;
 @Path("/")
 public class ReloadTrigger {
     @POST
-    @Path("/reload/{application}")
+    @Path(LiveReloadProtocol.RELOAD_PATH + "/{application}")
     public Response reload(@PathParam("application") String application,
                            @QueryParam("status") @DefaultValue("reload") String statusString) throws IOException {
         ReloadStatus status = ReloadStatus.fromDescription(statusString);
@@ -49,7 +50,7 @@ public class ReloadTrigger {
     }
 
     @GET
-    @Path("/ping")
+    @Path(LiveReloadProtocol.PING_PATH)
     public Response ping() {
         return Response.ok("pong").build();
     }
