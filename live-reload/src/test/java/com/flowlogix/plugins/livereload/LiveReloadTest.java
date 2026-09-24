@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -49,6 +51,50 @@ class LiveReloadTest {
     Set<Session> mockSessions;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     Session session;
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "http://dev.example.com",
+        "http://DEV.EXAMPLE.COM:80",
+        "https://dev.example.com:443"
+    })
+    @SuppressWarnings("checkstyle:MagicNumber")
+    void acceptsSameWebSocketOrigins(String origin) {
+        String scheme = origin.startsWith("https") ? "https" : "http";
+        int port = "https".equals(scheme) ? 443 : 80;
+
+        assertThat(SameOriginFilter.isSameOrigin(origin, scheme, "dev.example.com", port)).isTrue();
+    }
+
+    @Test
+    @SuppressWarnings("checkstyle:MagicNumber")
+    void acceptsSameIpv6WebSocketOrigin() {
+        assertThat(SameOriginFilter.isSameOrigin(
+                "https://[2001:db8::1]:8443", "https", "2001:db8::1", 8443)).isTrue();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {
+        "null",
+        "file://dev.example.com",
+        "http://evil.example.com",
+        "not an origin"
+    })
+    @SuppressWarnings("checkstyle:MagicNumber")
+    void rejectsDifferentOrInvalidWebSocketOrigins(String origin) {
+        assertThat(SameOriginFilter.isSameOrigin(
+                origin, "http", "dev.example.com", 80)).isFalse();
+    }
+
+    @Test
+    @SuppressWarnings("checkstyle:MagicNumber")
+    void rejectsDifferentWebSocketOriginSchemeOrPort() {
+        assertThat(SameOriginFilter.isSameOrigin(
+                "https://dev.example.com", "http", "dev.example.com", 80)).isFalse();
+        assertThat(SameOriginFilter.isSameOrigin(
+                "http://dev.example.com:8081", "http", "dev.example.com", 8080)).isFalse();
+    }
 
     @ParameterizedTest
     @EnumSource(ReloadStatus.class)

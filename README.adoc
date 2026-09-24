@@ -76,6 +76,8 @@ To use the plugin, add the following to your `pom.xml`:
 
 == Configuration
 
+The unauthenticated LiveReload helper accepts WebSocket connections only from the same browser origin and is intended for trusted development environments; protect shared servers with network or proxy access controls.
+
 The plugin can be configured with the following parameters:
 
 |===
@@ -131,4 +133,3 @@ The plugin can be configured with the following parameters:
 | `null`
 | `name`
 |===
-
