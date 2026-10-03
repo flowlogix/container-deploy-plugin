@@ -61,13 +61,13 @@ class Deployer {
 
     record CommandResponse(int statusCode, String body) { }
 
-    public record ServerLocations(
+    public record AdminCommandResult(
             String message,
             String command,
             String exit_code,
-            Properties properties
+            ServerLocationProperties properties
     ) {
-        public record Properties(
+        public record ServerLocationProperties(
                 @JsonbProperty("Restart-Required") String restartRequired,
                 @JsonbProperty("Instance-Root") String instanceRoot,
                 @JsonbProperty("Base-Root") String baseRoot,
@@ -121,18 +121,18 @@ class Deployer {
         return sendCommand("ping", Map.of(), (a, b) -> { }) != CommandResult.NO_CONNECTION;
     }
 
-    ServerLocations serverLocations() {
-        AtomicReference<ServerLocations> serverLocations = new AtomicReference<>();
+    AdminCommandResult serverLocations() {
+        AtomicReference<AdminCommandResult> serverLocations = new AtomicReference<>();
         return switch (sendCommand("__locations", Map.of(),
-                (command, response) -> serverLocationsResponse(command, response, serverLocations))) {
+                (command, response) -> adminCommandResponse(command, response, serverLocations))) {
             case NO_CONNECTION, NOT_DELIVERED, ERROR -> null;
             case SUCCESS -> serverLocations.get();
         };
     }
 
     @SuppressWarnings("checkstyle:MagicNumber")
-    private void serverLocationsResponse(String command, CommandResponse response,
-                                         AtomicReference<ServerLocations> serverLocations) {
+    private void adminCommandResponse(String command, CommandResponse response,
+                                      AtomicReference<AdminCommandResult> serverLocations) {
         if (response.statusCode() != 200) {
             printResponse(command, response);
             return;
@@ -147,9 +147,9 @@ class Deployer {
              JsonReader reader = Json.createReader(new StringReader(body))) {
             JsonObject actionReport = reader.readObject().getJsonObject("action-report");
             if (actionReport != null) {
-                serverLocations.set(jsonb.fromJson(jsonb.toJson(actionReport), ServerLocations.class));
+                serverLocations.set(jsonb.fromJson(jsonb.toJson(actionReport), AdminCommandResult.class));
             } else {
-                serverLocations.set(jsonb.fromJson(response.body(), ServerLocations.class));
+                serverLocations.set(jsonb.fromJson(response.body(), AdminCommandResult.class));
             }
         } catch (Exception e) {
             getLog().error("Failed to parse server locations response: %s - %s"
@@ -181,8 +181,19 @@ class Deployer {
             responseCallback.accept(command, new CommandResponse(0, e.getMessage()));
             return e instanceof ConnectException ? CommandResult.NO_CONNECTION : CommandResult.ERROR;
         }
+
+        CommandResult result = response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
+        if (result == CommandResult.SUCCESS) {
+            var commandResponse = new AtomicReference<AdminCommandResult>();
+            adminCommandResponse(command, new CommandResponse(response.statusCode(), response.body()), commandResponse);
+            if (!CommandResult.SUCCESS.name().equals(commandResponse.get().exit_code())) {
+                responseCallback.accept(commandResponse.get().command(), new CommandResponse(
+                        -1, commandResponse.get().message()));
+                return CommandResult.ERROR;
+            }
+        }
         responseCallback.accept(command, new CommandResponse(response.statusCode(), response.body()));
-        return response.statusCode() == 200 ? CommandResult.SUCCESS : CommandResult.ERROR;
+        return result;
     }
 
     @SneakyThrows(InterruptedException.class)

@@ -18,7 +18,7 @@
  */
 package com.flowlogix.maven.plugins;
 
-import com.flowlogix.maven.plugins.Deployer.ServerLocations;
+import com.flowlogix.maven.plugins.Deployer.AdminCommandResult;
 import lombok.SneakyThrows;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -36,7 +36,7 @@ public class CopyDependenciesMojo extends CommonDevMojo {
     @Override
     @SneakyThrows(IOException.class)
     public void execute() throws MojoFailureException {
-        ServerLocations locations = deployer.serverLocations();
+        AdminCommandResult locations = deployer.serverLocations();
         if (locations == null) {
             throw new MojoFailureException("Error determining server locations, is the server running?");
         }
