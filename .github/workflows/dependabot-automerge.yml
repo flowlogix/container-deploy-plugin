@@ -8,6 +8,7 @@ jobs:
   call-automerge:
     uses: flowlogix/base-pom/.github/workflows/dependabot-automerge.yml@main
     permissions:
+      checks: read
       contents: write
       pull-requests: write
     secrets:
