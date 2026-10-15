@@ -26,7 +26,7 @@
     <properties>
         <!-- Override target java release -->
         <maven.compiler.release>17</maven.compiler.release>
-        <flowlogix.depchain.version>132</flowlogix.depchain.version>
+        <flowlogix.depchain.version>133</flowlogix.depchain.version>
         <checkstyle.suppressionsLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/suppressions.xml</checkstyle.suppressionsLocation>
         <checkstyle.headerLocation>${maven.multiModuleProjectDirectory}/src/checkstyle/apache-header.txt</checkstyle.headerLocation>
         <!-- Turn off maven build cache -->
