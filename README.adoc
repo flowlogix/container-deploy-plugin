@@ -115,7 +115,7 @@ The plugin can be configured with the following parameters:
 
 | `livereloadHelperVersion`
 | Version of the LiveReload helper application
-| `1.0`
+| `1.5.1`
 | `livereload-helper-version`
 
 | `watcherDelay`
@@ -125,8 +125,18 @@ The plugin can be configured with the following parameters:
 
 | `additionalRepositories`
 | Additional repositories for LiveReload helper deployment
-| `null`
+| Empty list
 | `additionalRepositories`
+
+| `testFailureMaxRetransmit`
+| Maximum number of test-failure notification attempts, including the first (`dev` and `watch` goals). Set to `0` to disable these notifications without disabling tests.
+| `50`
+| `test-failure-max-retransmit`
+
+| `testFailureRetransmitDelay`
+| Delay in milliseconds between unsuccessful test-failure notification attempts (`dev` and `watch` goals)
+| `100`
+| `test-failure-retransmit-delay`
 
 | `name`
 | Name of the application on the server. Applies only to deploy, undeploy or clean goals. Defaults to the project's final name.

@@ -22,6 +22,7 @@ import com.flowlogix.maven.plugins.Deployer.CommandResult;
 import com.flowlogix.plugins.common.ReloadStatus;
 import com.flowlogix.plugins.common.LiveReloadProtocol;
 import lombok.SneakyThrows;
+import lombok.Synchronized;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
@@ -32,8 +33,12 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import static com.flowlogix.maven.plugins.Deployer.DEFAULT;
@@ -76,6 +81,9 @@ public class DevModeMojo extends CommonDevMojo {
     @Parameter(property = "test-failure-retransmit-delay", defaultValue = "100")
     Integer testFailureRetransmitDelay;
 
+    private final ExecutorService notificationExecutor = Executors.newSingleThreadExecutor();
+    private Optional<Future<?>> testFailureNotification = Optional.empty();
+
     @Override
     @SneakyThrows(IOException.class)
     public void execute() {
@@ -93,7 +101,11 @@ public class DevModeMojo extends CommonDevMojo {
         if (deploy) {
             enableOrDeploy();
         }
-        watcher.watch(getSrcMainDir(), this::onChange, watcherDelay);
+        try {
+            watcher.watch(getSrcMainDir(), this::onChange, watcherDelay);
+        } finally {
+            stopTestFailureNotifications();
+        }
     }
 
     private void enableOrDeploy() throws IOException {
@@ -174,11 +186,12 @@ public class DevModeMojo extends CommonDevMojo {
         getLog().debug("onChange: " + modifiedFiles);
         var filteredFiles = modifiedFiles.stream().filter(not(this::isIgnoredFile))
                 .collect(Collectors.toSet());
-        boolean codeChanged = filteredFiles.stream().anyMatch(this::isSourceCode);
-        boolean compilationSucceeded = codeChanged && compileSources();
         if (filteredFiles.isEmpty()) {
             return;
         }
+        cancelTestFailureNotification();
+        boolean codeChanged = filteredFiles.stream().anyMatch(this::isSourceCode);
+        boolean compilationSucceeded = codeChanged && compileSources();
         boolean isDeployError = !explodedWar();
         isDeployError = deploy(codeChanged, compilationSucceeded, isDeployError);
         reloadAndTest(codeChanged, compilationSucceeded, isDeployError);
@@ -197,25 +210,63 @@ public class DevModeMojo extends CommonDevMojo {
         return isDeployError;
     }
 
-    @SneakyThrows(InterruptedException.class)
     private void reloadAndTest(boolean codeChanged, boolean compilationSucceeded, boolean isDeployError) {
         if (deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
                 codeChanged && !compilationSucceeded || isDeployError ? ReloadStatus.ERROR : ReloadStatus.RELOAD,
                 deployer::printResponse) == CommandResult.ERROR) {
             getLog().warn("Website Reload failed");
-        } else if (compilationSucceeded) {
-            if (!runTests()) {
-                CommandResult result = CommandResult.ERROR;
-                for (int ii = 0; ii < testFailureMaxRetransmit && result != CommandResult.SUCCESS; ++ii) {
-                    result = deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
-                            ReloadStatus.TEST_FAILURE, deployer::printResponse);
-                    if (result == CommandResult.NO_CONNECTION) {
-                        break;
-                    }
-                    if (result == CommandResult.ERROR) {
-                        Thread.sleep(Duration.ofMillis(testFailureRetransmitDelay).toMillis());
-                    }
+        } else if (compilationSucceeded && !runTests()) {
+            notifyTestFailureAsync();
+        }
+    }
+
+    @Synchronized
+    void notifyTestFailureAsync() {
+        cancelTestFailureNotification();
+        if (!notificationExecutor.isShutdown()) {
+            testFailureNotification = Optional.of(notificationExecutor.submit(() -> {
+                try {
+                    notifyTestFailure();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (IOException | RuntimeException e) {
+                    getLog().error("Test-failure notification failed", e);
                 }
+            }));
+        }
+    }
+
+    @Synchronized
+    void cancelTestFailureNotification() {
+        testFailureNotification.ifPresent(task -> task.cancel(true));
+        testFailureNotification = Optional.empty();
+    }
+
+    @Synchronized
+    void stopTestFailureNotifications() {
+        cancelTestFailureNotification();
+        notificationExecutor.shutdownNow();
+    }
+
+    private void notifyTestFailure() throws IOException, InterruptedException {
+        CommandResult result = CommandResult.ERROR;
+        for (int ii = 0; ii < testFailureMaxRetransmit && result != CommandResult.SUCCESS; ++ii) {
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
+            boolean lastAttempt = ii + 1 == testFailureMaxRetransmit;
+            result = deployer.sendReloadCommand(getBaseURL(), project.getBuild().getFinalName(),
+                    ReloadStatus.TEST_FAILURE,
+                    (command, response) -> {
+                        if (!Thread.currentThread().isInterrupted() && (lastAttempt || response == null)) {
+                            deployer.printResponse(command, response);
+                        }
+                    });
+            if (result == CommandResult.NO_CONNECTION) {
+                break;
+            }
+            if (result != CommandResult.SUCCESS && !lastAttempt) {
+                Thread.sleep(Duration.ofMillis(testFailureRetransmitDelay).toMillis());
             }
         }
     }
