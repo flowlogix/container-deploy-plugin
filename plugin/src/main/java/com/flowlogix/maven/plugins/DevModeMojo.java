@@ -72,7 +72,7 @@ public class DevModeMojo extends CommonDevMojo {
     @Parameter(property = "watcher-delay", defaultValue = "50")
     Integer watcherDelay;
 
-    @Parameter(property = "additionalRepositories", defaultValue = "")
+    @Parameter(property = "additionalRepositories")
     List<String> additionalRepositories;
 
     @Parameter(property = "test-failure-max-retransmit", defaultValue = "50")
@@ -85,7 +85,6 @@ public class DevModeMojo extends CommonDevMojo {
     private Optional<Future<?>> testFailureNotification = Optional.empty();
 
     @Override
-    @SneakyThrows(IOException.class)
     public void execute() {
         if (project == null || project.getFile() == null) {
             getLog().warn("No Maven project found, skipping execution.");
@@ -108,7 +107,7 @@ public class DevModeMojo extends CommonDevMojo {
         }
     }
 
-    private void enableOrDeploy() throws IOException {
+    private void enableOrDeploy() {
         var result = deployer.sendEnableCommand((a, b) -> { });
         if (result == CommandResult.NO_CONNECTION) {
             extractAppServer();
@@ -145,6 +144,10 @@ public class DevModeMojo extends CommonDevMojo {
     }
 
     protected void displayInfo() {
+        if (deployer.serverLocations() == null) {
+            getLog().warn("Error determining server locations, is the server running?");
+            return;
+        }
         getLog().info("Application URL at " + getAppURL());
         if (openBrowser) {
             getLog().info("App Server at %s".formatted(deployer.serverLocations().properties().baseRoot()));

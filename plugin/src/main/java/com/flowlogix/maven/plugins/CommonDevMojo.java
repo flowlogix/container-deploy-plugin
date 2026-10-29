@@ -24,19 +24,23 @@ import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.BuildPluginManager;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.PluginDescriptorParsingException;
 import org.apache.maven.plugin.PluginNotFoundException;
 import org.apache.maven.plugin.PluginResolutionException;
+import org.apache.maven.plugin.PluginParameterExpressionEvaluator;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.codehaus.plexus.component.configurator.expression.ExpressionEvaluationException;
 import org.jspecify.annotations.Nullable;
 import javax.inject.Inject;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
@@ -68,6 +72,9 @@ abstract class CommonDevMojo extends AbstractMojo {
 
     @Inject
     BuildPluginManager pluginManager;
+
+    @Parameter(defaultValue = "${mojoExecution}", readonly = true)
+    MojoExecution mojoExecution;
 
     /**
      * Administration URL to connect to the Server.
@@ -121,39 +128,15 @@ abstract class CommonDevMojo extends AbstractMojo {
                             @Nullable String execution, MavenProject project, MavenSession session,
                             BuildPluginManager pluginManager, Consumer<Xpp3Dom> configurator) {
         try {
-            var plugin = project.getPlugin("%s:%s".formatted(groupId, artifactId));
-            Xpp3Dom configuration;
+            var plugin = Optional.ofNullable(project.getPlugin("%s:%s".formatted(groupId, artifactId)));
+            Xpp3Dom configuration = plugin.map(value -> (Xpp3Dom) value.getConfiguration()).orElse(null);
             if (execution != null) {
-                PluginExecution pluginExecution = plugin.getExecutionsAsMap().get(execution);
+                PluginExecution pluginExecution = plugin.map(value -> value.getExecutionsAsMap().get(execution)).orElse(null);
                 if (pluginExecution == null) {
-                    getLog().warn("Cannot find execution %s for execution of %s:%s"
-                            .formatted(execution, groupId, artifactId));
-                    if (MAVEN_DEPENDENCY_PLUGIN.equals(artifactId)
-                            && "copy-dependencies".equals(goal)
-                        && ORG_APACHE_MAVEN_PLUGINS.equals(groupId)) {
-                        getLog().warn("""
-                            Copied dependencies are probably incorrect.
-                            You probably need to add the following in your pom.xml:
-                            <plugin>
-                                <artifactId>maven-dependency-plugin</artifactId>
-                                <executions>
-                                    <execution>
-                                        <id>default-cli</id>
-                                        <configuration>
-                                            <includeScope>runtime</includeScope>
-                                            <excludeArtifactIds>postgresql, checker-qual, asm</excludeArtifactIds>
-                                        </configuration>
-                                    </execution>
-                                </executions>
-                            </plugin>
-                            """);
-                    }
-                    configuration = (Xpp3Dom) plugin.getConfiguration();
+                    warnMissingExecution(groupId, artifactId, goal, execution, configuration, session);
                 } else {
                     configuration = (Xpp3Dom) pluginExecution.getConfiguration();
                 }
-            } else {
-                configuration = (Xpp3Dom) plugin.getConfiguration();
             }
             if (configuration == null) {
                 configuration = configuration();
@@ -173,6 +156,56 @@ abstract class CommonDevMojo extends AbstractMojo {
             getLog().debug("Failed to execute %s:%s:%s".formatted(groupId, artifactId, goal), e);
             return false;
         }
+    }
+
+    private void warnMissingExecution(String groupId, String artifactId, String goal, String execution,
+                                      @Nullable Xpp3Dom configuration, MavenSession session)
+            throws MojoExecutionException {
+        boolean copyingDependencies = MAVEN_DEPENDENCY_PLUGIN.equals(artifactId)
+                && "copy-dependencies".equals(goal) && ORG_APACHE_MAVEN_PLUGINS.equals(groupId);
+        if (copyingDependencies && hasDependencyCopyConfiguration(configuration, session)) {
+            return;
+        }
+        if (copyingDependencies) {
+            getLog().warn("""
+                Copied dependencies are probably incorrect.
+                You probably need to add the following to your pom.xml:
+                <plugin>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>default-cli</id>
+                            <configuration>
+                                <includeScope>runtime</includeScope>
+                                <excludeArtifactIds>postgresql, checker-qual, asm</excludeArtifactIds>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                """);
+        } else {
+            getLog().warn("Cannot find execution %s for execution of %s:%s"
+                    .formatted(execution, groupId, artifactId));
+        }
+    }
+
+    private boolean hasDependencyCopyConfiguration(@Nullable Xpp3Dom configuration, MavenSession session)
+            throws MojoExecutionException {
+        var evaluator = new PluginParameterExpressionEvaluator(session, mojoExecution);
+        try {
+            var scope = evaluator.evaluate(parameterExpression(configuration, "includeScope"));
+            var exclusions = evaluator.evaluate(parameterExpression(configuration, "excludeArtifactIds"));
+            return "runtime".equals(scope) && exclusions instanceof String value && !value.isBlank();
+        } catch (ExpressionEvaluationException e) {
+            throw new MojoExecutionException("Could not evaluate dependency-copy configuration", e);
+        }
+    }
+
+    private String parameterExpression(@Nullable Xpp3Dom configuration, String name) {
+        return Optional.ofNullable(configuration)
+                .map(value -> value.getChild(name))
+                .map(Xpp3Dom::getValue)
+                .orElseGet(() -> "${%s}".formatted(name));
     }
 
     void addSkipConfiguration(Xpp3Dom configuration) {
