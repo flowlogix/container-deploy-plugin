@@ -24,7 +24,6 @@
     </modules>
 
     <properties>
-        <flowlogix.bom.version>56</flowlogix.bom.version>
         <!-- Override target java release -->
         <maven.compiler.release>17</maven.compiler.release>
         <flowlogix.depchain.version>135</flowlogix.depchain.version>
@@ -62,7 +61,7 @@
             <dependency>
                 <groupId>com.flowlogix</groupId>
                 <artifactId>flowlogix-bom</artifactId>
-                <version>${flowlogix.bom.version}</version>
+                <version>56</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
